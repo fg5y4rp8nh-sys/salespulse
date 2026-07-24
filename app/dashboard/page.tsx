@@ -3,6 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { deals } from "@/db/schema";
 import { addDeal } from "./actions";
+import { InsightsPanel } from "./InsightsPanel";
 
 // Формат суммы в рублях.
 const money = (n: number) =>
@@ -46,6 +47,9 @@ export default async function DashboardPage() {
         <Metric label="В работе" value={String(openCount)} />
       </div>
 
+      {/* AI-инсайты */}
+      <InsightsPanel />
+
       {/* Форма добавления */}
       <form
         action={addDeal}
@@ -56,6 +60,28 @@ export default async function DashboardPage() {
           <input
             name="customer"
             required
+            className="rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Менеджер
+          <input
+            name="manager"
+            className="rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Регион
+          <input
+            name="region"
+            className="rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Дата
+          <input
+            name="dealDate"
+            type="date"
             className="rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
           />
         </label>
@@ -98,7 +124,10 @@ export default async function DashboardPage() {
         <table className="w-full text-left text-sm">
           <thead className="text-zinc-500">
             <tr className="border-b border-black/10 dark:border-white/10">
+              <th className="py-2">Дата</th>
               <th className="py-2">Клиент</th>
+              <th className="py-2">Менеджер</th>
+              <th className="py-2">Регион</th>
               <th className="py-2">Сумма</th>
               <th className="py-2">Статус</th>
             </tr>
@@ -109,7 +138,12 @@ export default async function DashboardPage() {
                 key={d.id}
                 className="border-b border-black/5 dark:border-white/5"
               >
+                <td className="py-2">
+                  {d.dealDate.toLocaleDateString("ru-RU")}
+                </td>
                 <td className="py-2">{d.customer}</td>
+                <td className="py-2">{d.manager || "—"}</td>
+                <td className="py-2">{d.region || "—"}</td>
                 <td className="py-2">{money(Number(d.amount))}</td>
                 <td className="py-2">{d.status}</td>
               </tr>
