@@ -58,31 +58,41 @@ body {
   outline: none !important;
 }
 
-/* Анимированный фон главной: плавно дрейфующие цветные «пятна» */
-@keyframes blobDrift {
+/* Анимированный фон главной: мягкие цветные свечения (радиальные градиенты) */
+@keyframes heroDrift {
   0%   { transform: translate(0, 0) scale(1); }
-  33%  { transform: translate(6%, -4%) scale(1.08); }
-  66%  { transform: translate(-5%, 5%) scale(0.96); }
+  33%  { transform: translate(4%, -3%) scale(1.06); }
+  66%  { transform: translate(-4%, 3%) scale(0.97); }
   100% { transform: translate(0, 0) scale(1); }
 }
-.hero-bg { position: absolute; inset: 0; overflow: hidden; background: #050506; z-index: 0; }
-.hero-blob {
+.hero-bg {
   position: absolute;
-  border-radius: 9999px;
-  filter: blur(70px);
-  opacity: 0.55;
+  inset: 0;
+  overflow: hidden;
+  background: #050506;
+  z-index: 0;
+}
+.hero-bg::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(40% 40% at 24% 26%, rgba(42, 120, 214, 0.55), transparent 70%),
+    radial-gradient(38% 38% at 80% 82%, rgba(27, 175, 122, 0.50), transparent 70%),
+    radial-gradient(34% 34% at 62% 40%, rgba(74, 58, 167, 0.50), transparent 70%);
   will-change: transform;
-  animation: blobDrift 18s ease-in-out infinite;
+  animation: heroDrift 22s ease-in-out infinite;
 }
 .hero-grid {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-blob { animation: none; }
+  .hero-bg::before { animation: none; }
 }

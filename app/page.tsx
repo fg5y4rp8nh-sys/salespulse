@@ -7,18 +7,6 @@ export default function Home() {
       {/* Анимированный минималистичный фон */}
       <div className="hero-bg" aria-hidden="true">
         <div className="hero-grid" />
-        <div
-          className="hero-blob"
-          style={{ width: 420, height: 420, top: "-6%", left: "8%", background: "#2a78d6", animationDelay: "0s" }}
-        />
-        <div
-          className="hero-blob"
-          style={{ width: 380, height: 380, bottom: "-8%", right: "6%", background: "#1baf7a", animationDelay: "-6s" }}
-        />
-        <div
-          className="hero-blob"
-          style={{ width: 320, height: 320, top: "30%", left: "45%", background: "#4a3aa7", animationDelay: "-12s" }}
-        />
       </div>
 
       <div className="relative z-10 flex flex-col items-center gap-6">
