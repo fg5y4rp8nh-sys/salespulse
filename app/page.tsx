@@ -13,11 +13,19 @@ export default function Home() {
       </p>
 
       <Show when="signed-out">
-        <SignInButton mode="modal">
-          <button className="rounded-full bg-foreground px-6 py-3 text-base font-medium text-background">
-            Войти, чтобы начать
-          </button>
-        </SignInButton>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <SignInButton mode="modal">
+            <button className="rounded-full bg-foreground px-6 py-3 text-base font-medium text-background">
+              Войти, чтобы начать
+            </button>
+          </SignInButton>
+          <Link
+            href="/demo"
+            className="rounded-full border border-black/15 px-6 py-3 text-base font-medium dark:border-white/20"
+          >
+            Посмотреть демо
+          </Link>
+        </div>
       </Show>
 
       <Show when="signed-in">

@@ -2,31 +2,26 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { deals, type Deal } from "@/db/schema";
+import { analyze, revenueDelta } from "@/lib/analytics";
 import { addDeal } from "./actions";
 import { InsightsPanel } from "./InsightsPanel";
 import { ImportPanel } from "./ImportPanel";
 import { ResetButton } from "./ResetButton";
-import { Charts } from "./Charts";
 import { FilterBar } from "./FilterBar";
-import { Funnel } from "./Funnel";
 import { ExportButton } from "./ExportButton";
+import { Report } from "./report";
+import { DealsTable, type TableDeal } from "./DealsTable";
 
-// Формат суммы с учётом валюты сделки.
-const money = (n: number, currency = "RUB") =>
-  new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(n);
-
-// Человекочитаемые статусы + цвет метки.
-const STATUS: Record<string, { label: string; cls: string }> = {
-  won: { label: "Выиграна", cls: "bg-green-500/15 text-green-600" },
-  lost: { label: "Проиграна", cls: "bg-red-500/15 text-red-600" },
-  open: { label: "В работе", cls: "bg-amber-500/15 text-amber-600" },
-};
-
-const MAX_ROWS = 50; // сколько строк показываем в таблице
+const toTableDeal = (d: Deal): TableDeal => ({
+  id: d.id,
+  dealDate: d.dealDate.toISOString(),
+  customer: d.customer,
+  manager: d.manager,
+  region: d.region,
+  amount: Number(d.amount),
+  currency: d.currency,
+  status: d.status,
+});
 
 export default async function DashboardPage({
   searchParams,
@@ -40,11 +35,7 @@ export default async function DashboardPage({
   let dbError = false;
   try {
     allRows = userId
-      ? await db
-          .select()
-          .from(deals)
-          .where(eq(deals.userId, userId))
-          .orderBy(desc(deals.createdAt))
+      ? await db.select().from(deals).where(eq(deals.userId, userId)).orderBy(desc(deals.createdAt))
       : [];
   } catch {
     allRows = [];
@@ -59,89 +50,41 @@ export default async function DashboardPage({
   const fRegion = one(sp.region);
   const fStatus = one(sp.status);
 
-  // Варианты для выпадающих списков — из всех сделок пользователя.
   const managers = [...new Set(allRows.map((d) => d.manager).filter(Boolean))].sort();
   const regions = [...new Set(allRows.map((d) => d.region).filter(Boolean))].sort();
 
-  // Применяем фильтры.
   const periodDays = fPeriod && fPeriod !== "all" ? Number(fPeriod) : null;
-  const since =
-    periodDays != null ? new Date(Date.now() - periodDays * 86400000) : null;
+  const since = periodDays != null ? new Date(Date.now() - periodDays * 86400000) : null;
 
-  const rows = allRows.filter((d) => {
-    if (since && d.dealDate < since) return false;
-    if (fManager && d.manager !== fManager) return false;
-    if (fRegion && d.region !== fRegion) return false;
-    if (fStatus && d.status !== fStatus) return false;
-    return true;
-  });
+  const matchesDims = (d: Deal) =>
+    (!fManager || d.manager === fManager) &&
+    (!fRegion || d.region === fRegion) &&
+    (!fStatus || d.status === fStatus);
+
+  const rows = allRows.filter((d) => (!since || d.dealDate >= since) && matchesDims(d));
 
   if (dbError) {
     return (
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-6 py-10">
         <h1 className="text-2xl font-semibold">Дашборд</h1>
         <p className="text-red-600">
-          Не удалось подключиться к базе данных. Попробуйте обновить страницу
-          позже — если не помогает, проверьте настройки подключения.
+          Не удалось подключиться к базе данных. Попробуйте обновить страницу позже.
         </p>
       </main>
     );
   }
 
-  // Метрики.
-  const wonRevenue = rows
-    .filter((d) => d.status === "won")
-    .reduce((sum, d) => sum + Number(d.amount), 0);
-  const totalAmount = rows.reduce((sum, d) => sum + Number(d.amount), 0);
-  const avgCheck = rows.length ? totalAmount / rows.length : 0;
-  const wonCount = rows.filter((d) => d.status === "won").length;
-  const lostCount = rows.filter((d) => d.status === "lost").length;
-  const closedCount = wonCount + lostCount;
-  const conversion = closedCount ? Math.round((wonCount / closedCount) * 100) : 0;
+  const a = analyze(rows);
 
-  // Валюта для метрик берём из первой сделки (обычно она одна на аккаунт).
-  const mainCurrency = rows[0]?.currency ?? "RUB";
-  const visibleRows = rows.slice(0, MAX_ROWS);
-
-  // ─── Данные для графиков (только выигранные сделки = реальная выручка) ───
-  const won = rows.filter((d) => d.status === "won");
-
-  const monthMap = new Map<string, number>();
-  for (const d of won) {
-    const key = d.dealDate.toISOString().slice(0, 7); // YYYY-MM
-    monthMap.set(key, (monthMap.get(key) ?? 0) + Number(d.amount));
-  }
-  const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
-  const revenueByMonth = [...monthMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, revenue]) => {
-      const [y, m] = key.split("-");
-      return { month: `${MONTHS[Number(m) - 1]} ${y.slice(2)}`, revenue };
-    });
-
-  const managerMap = new Map<string, number>();
-  for (const d of won) {
-    const name = d.manager || "Без менеджера";
-    managerMap.set(name, (managerMap.get(name) ?? 0) + Number(d.amount));
-  }
-  const topManagers = [...managerMap.entries()]
-    .map(([manager, revenue]) => ({ manager, revenue }))
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5);
-
-  const regionMap = new Map<string, number>();
-  for (const d of won) {
-    const name = d.region || "Без региона";
-    regionMap.set(name, (regionMap.get(name) ?? 0) + Number(d.amount));
-  }
-  const byRegion = [...regionMap.entries()]
-    .map(([region, value]) => ({ region, value }))
-    .sort((a, b) => b.value - a.value);
-
-  // Этапы воронки (по всем отфильтрованным сделкам).
-  const stageCounts: Record<string, number> = {};
-  for (const d of rows) {
-    stageCounts[d.stage] = (stageCounts[d.stage] ?? 0) + 1;
+  // Динамика выручки к предыдущему периоду (только когда выбран период).
+  let deltaPct: number | null = null;
+  if (periodDays != null && since) {
+    const prevSince = new Date(since.getTime() - periodDays * 86400000);
+    const prevRows = allRows.filter(
+      (d) => d.dealDate >= prevSince && d.dealDate < since && matchesDims(d),
+    );
+    const prevRevenue = analyze(prevRows).wonRevenue;
+    deltaPct = revenueDelta(a.wonRevenue, prevRevenue);
   }
 
   return (
@@ -155,40 +98,16 @@ export default async function DashboardPage({
         </h1>
         <div className="flex items-center gap-2">
           {rows.length > 0 && <ExportButton />}
-          {rows.length > 0 && <ResetButton />}
+          {allRows.length > 0 && <ResetButton />}
         </div>
       </div>
 
-      {/* Фильтры */}
       {allRows.length > 0 && <FilterBar managers={managers} regions={regions} />}
 
-      {/* Область отчёта (попадает в PDF) */}
-      <div id="report" className="flex flex-col gap-8">
-        {/* Метрики */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Metric label="Выручка" value={money(wonRevenue, mainCurrency)} />
-          <Metric label="Всего сделок" value={String(rows.length)} />
-          <Metric label="Средний чек" value={money(avgCheck, mainCurrency)} />
-          <Metric label="Конверсия" value={`${conversion}%`} />
-        </div>
+      <Report a={a} deltaPct={deltaPct} />
 
-        {/* Графики (когда есть выигранные сделки) */}
-        {won.length > 0 && (
-          <Charts
-            revenueByMonth={revenueByMonth}
-            topManagers={topManagers}
-            byRegion={byRegion}
-          />
-        )}
-
-        {/* Воронка продаж */}
-        {rows.length > 0 && <Funnel stageCounts={stageCounts} />}
-      </div>
-
-      {/* Загрузка CSV */}
       <ImportPanel />
 
-      {/* AI-инсайты */}
       <InsightsPanel />
 
       {/* Форма добавления сделки вручную */}
@@ -199,61 +118,34 @@ export default async function DashboardPage({
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <label className="flex flex-col gap-1 text-sm">
             Клиент
-            <input
-              name="customer"
-              required
-              className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
-            />
+            <input name="customer" required className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Менеджер
-            <input
-              name="manager"
-              className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
-            />
+            <input name="manager" className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Регион
-            <input
-              name="region"
-              className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
-            />
+            <input name="region" className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Дата
-            <input
-              name="dealDate"
-              type="date"
-              className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
-            />
+            <input name="dealDate" type="date" className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Сумма
-            <input
-              name="amount"
-              type="number"
-              min="0"
-              step="0.01"
-              required
-              className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
-            />
+            <input name="amount" type="number" min="0" step="0.01" required className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Статус
-            <select
-              name="status"
-              className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent"
-            >
+            <select name="status" className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent">
               <option value="open">В работе</option>
               <option value="won">Выиграна</option>
               <option value="lost">Проиграна</option>
             </select>
           </label>
         </div>
-        <button
-          type="submit"
-          className="mt-3 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
-        >
+        <button type="submit" className="mt-3 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background">
           Добавить
         </button>
       </form>
@@ -262,69 +154,12 @@ export default async function DashboardPage({
       {rows.length === 0 ? (
         <p className="text-zinc-500">
           {allRows.length === 0
-            ? "Сделок пока нет — добавьте вручную ниже или загрузите файл выше."
+            ? "Сделок пока нет — добавьте вручную выше или загрузите файл."
             : "Под выбранные фильтры сделок не нашлось."}
         </p>
       ) : (
-        <div className="flex flex-col gap-2">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="text-zinc-500">
-                <tr className="border-b border-black/10 dark:border-white/10">
-                  <th className="py-2 pr-4">Дата</th>
-                  <th className="py-2 pr-4">Клиент</th>
-                  <th className="py-2 pr-4">Менеджер</th>
-                  <th className="py-2 pr-4">Регион</th>
-                  <th className="py-2 pr-4">Сумма</th>
-                  <th className="py-2">Статус</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRows.map((d) => {
-                  const st = STATUS[d.status] ?? STATUS.open;
-                  return (
-                    <tr
-                      key={d.id}
-                      className="border-b border-black/5 dark:border-white/5"
-                    >
-                      <td className="py-2 pr-4 whitespace-nowrap">
-                        {d.dealDate.toLocaleDateString("ru-RU")}
-                      </td>
-                      <td className="py-2 pr-4">{d.customer}</td>
-                      <td className="py-2 pr-4">{d.manager || "—"}</td>
-                      <td className="py-2 pr-4">{d.region || "—"}</td>
-                      <td className="py-2 pr-4 whitespace-nowrap tabular-nums">
-                        {money(Number(d.amount), d.currency)}
-                      </td>
-                      <td className="py-2">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${st.cls}`}
-                        >
-                          {st.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {rows.length > MAX_ROWS && (
-            <p className="text-xs text-zinc-500">
-              Показаны последние {MAX_ROWS} из {rows.length} сделок.
-            </p>
-          )}
-        </div>
+        <DealsTable rows={rows.map(toTableDeal)} deletable />
       )}
     </main>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-black/10 p-4 dark:border-white/10">
-      <div className="text-sm text-zinc-500">{label}</div>
-      <div className="mt-1 text-2xl font-semibold">{value}</div>
-    </div>
   );
 }

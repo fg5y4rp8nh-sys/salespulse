@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { importFile, type ImportResult } from "./import";
 
 const ACCEPT =
-  ".csv,.tsv,.txt,.xlsx,.xls,.ods,.json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/json";
+  ".csv,.tsv,.txt,.xlsx,.xls,.ods,.json,.pdf,.png,.jpg,.jpeg,.webp,text/csv,application/json,application/pdf,image/*";
 
 export function ImportPanel() {
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -25,13 +25,17 @@ export function ImportPanel() {
     });
   }
 
+  function label(files: FileList | null): string | null {
+    if (!files || files.length === 0) return null;
+    return files.length === 1 ? files[0].name : `Файлов выбрано: ${files.length}`;
+  }
+
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && inputRef.current) {
+    if (e.dataTransfer.files?.length && inputRef.current) {
       inputRef.current.files = e.dataTransfer.files;
-      setFileName(file.name);
+      setFileName(label(e.dataTransfer.files));
     }
   }
 
@@ -40,7 +44,8 @@ export function ImportPanel() {
       <div className="flex flex-col gap-0.5">
         <h2 className="text-lg font-semibold">Загрузка файла</h2>
         <p className="text-xs text-zinc-500">
-          CSV, TSV, Excel (.xlsx, .xls), OpenDocument (.ods) или JSON
+          CSV, TSV, Excel, ODS, JSON, а также PDF и сканы/фото таблиц (распознаём через AI).
+          Можно выбрать несколько файлов сразу.
         </p>
       </div>
 
@@ -64,9 +69,10 @@ export function ImportPanel() {
             type="file"
             name="file"
             accept={ACCEPT}
+            multiple
             required
             className="sr-only"
-            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+            onChange={(e) => setFileName(label(e.target.files))}
           />
           <svg
             width="28"

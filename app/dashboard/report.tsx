@@ -1,0 +1,63 @@
+import type { Analytics } from "@/lib/analytics";
+import { Charts } from "./Charts";
+import { Funnel } from "./Funnel";
+import { money } from "./reportClient";
+
+function Metric({
+  label,
+  value,
+  delta,
+}: {
+  label: string;
+  value: string;
+  delta?: number | null;
+}) {
+  return (
+    <div className="rounded-xl border border-black/10 p-4 dark:border-white/10">
+      <div className="text-sm text-zinc-500">{label}</div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-2xl font-semibold">{value}</span>
+        {delta != null && (
+          <span
+            className={`text-sm font-medium ${
+              delta >= 0 ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {delta >= 0 ? "+" : ""}
+            {delta}%
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Блок отчёта: метрики + графики + воронка. Идёт внутрь PDF (id="report").
+export function Report({
+  a,
+  deltaPct,
+}: {
+  a: Analytics;
+  deltaPct?: number | null;
+}) {
+  return (
+    <div id="report" className="flex flex-col gap-8">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Metric label="Выручка" value={money(a.wonRevenue, a.mainCurrency)} delta={deltaPct} />
+        <Metric label="Всего сделок" value={String(a.dealCount)} />
+        <Metric label="Средний чек" value={money(a.avgCheck, a.mainCurrency)} />
+        <Metric label="Конверсия" value={`${a.conversion}%`} />
+      </div>
+
+      {a.won.length > 0 && (
+        <Charts
+          revenueByMonth={a.revenueByMonth}
+          topManagers={a.topManagers}
+          byRegion={a.byRegion}
+        />
+      )}
+
+      {a.dealCount > 0 && <Funnel stageCounts={a.stageCounts} />}
+    </div>
+  );
+}

@@ -1,17 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { getInsights } from "./insights";
 
 export function InsightsPanel() {
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const params = useSearchParams();
 
   function run() {
     setError(null);
     startTransition(async () => {
-      const res = await getInsights();
+      const res = await getInsights({
+        period: params.get("period") ?? undefined,
+        manager: params.get("manager") ?? undefined,
+        region: params.get("region") ?? undefined,
+        status: params.get("status") ?? undefined,
+      });
       if (res.ok) {
         setText(res.text);
       } else {

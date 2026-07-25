@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { deals, insights, targets } from "@/db/schema";
 
@@ -35,6 +35,14 @@ export async function addDeal(formData: FormData) {
     closedAt: isClosed ? new Date() : null,
   });
 
+  revalidatePath("/dashboard");
+}
+
+// Серверное действие: удаляет одну сделку текущего пользователя.
+export async function deleteDeal(id: number) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Не авторизован");
+  await db.delete(deals).where(and(eq(deals.id, id), eq(deals.userId, userId)));
   revalidatePath("/dashboard");
 }
 

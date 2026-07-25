@@ -31,9 +31,6 @@ const DICTIONARY: Record<Field, string[]> = {
   date: ["date", "дата", "deal_date", "дата сделки", "created", "closed date"],
 };
 
-// Канонические этапы воронки по порядку.
-const STAGES = ["lead", "qualified", "proposal", "negotiation", "closed"] as const;
-
 // Нормализует этап воронки. Если нет — вернём null (тогда выведем из статуса).
 function normalizeStage(raw: string): string | null {
   const s = raw.trim().toLowerCase();
@@ -69,11 +66,49 @@ async function parseFile(file: File): Promise<Row[]> {
     return parsed.data;
   }
 
+  // PDF и изображения (сканы/фото таблиц) — распознаём через Gemini.
+  const imageTypes: Record<string, string> = {
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+  };
+  const ext = Object.keys(imageTypes).find((e) => name.endsWith(e));
+  if (ext) {
+    return parseWithVision(file, imageTypes[ext]);
+  }
+
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   if (!sheet) throw new Error("В файле нет ни одного листа с данными.");
   return XLSX.utils.sheet_to_json<Row>(sheet, { defval: "", raw: false });
+}
+
+// Извлекает таблицу продаж из PDF/скана/фото через Gemini (распознавание).
+async function parseWithVision(file: File, mimeType: string): Promise<Row[]> {
+  const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const res = await ai.models.generateContent({
+    model: "gemini-flash-latest",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { inlineData: { mimeType, data: base64 } },
+          {
+            text: `Извлеки из этого документа таблицу продаж. Верни СТРОГО JSON-массив объектов с ключами: "клиент", "менеджер", "регион", "сумма", "статус", "дата", "этап". Пустые значения — пустая строка. Без пояснений, только JSON.`,
+          },
+        ],
+      },
+    ],
+    config: { responseMimeType: "application/json" },
+  });
+  const data = JSON.parse(res.text ?? "[]");
+  if (Array.isArray(data)) return data as Row[];
+  if (Array.isArray((data as { rows?: unknown }).rows)) return (data as { rows: Row[] }).rows;
+  return [];
 }
 
 // Сопоставление по словарю (быстро, без AI).
@@ -191,86 +226,52 @@ function normalizeStatus(raw: string): string {
   return "open";
 }
 
-export async function importFile(formData: FormData): Promise<ImportResult> {
-  const { userId } = await auth();
-  if (!userId) return { ok: false, error: "Не авторизован" };
+const signature = (customer: string, amount: string, date: Date, manager: string) =>
+  `${customer}|${amount}|${date.toISOString().slice(0, 10)}|${manager}`;
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, error: "Файл не выбран." };
-  }
-
-  let rows: Row[];
-  try {
-    rows = await parseFile(file);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Не удалось прочитать файл." };
-  }
-
-  if (rows.length === 0) {
-    return { ok: false, error: "Файл пуст — нет ни одной строки данных." };
-  }
+// Обрабатывает один файл: парсинг → сопоставление колонок → строки для вставки.
+async function processOneFile(
+  file: File,
+  userId: string,
+  seen: Set<string>,
+): Promise<{ deals: NewDeal[]; skipped: number; duplicates: number; aiUsed: boolean }> {
+  const rows = await parseFile(file);
+  if (rows.length === 0) return { deals: [], skipped: 0, duplicates: 0, aiUsed: false };
 
   const headers = Object.keys(rows[0]);
-
-  // 1) Быстрое сопоставление по словарю.
   let map = mapByDictionary(headers);
   let aiUsed = false;
-
-  // 2) Если ключевые поля не нашлись — просим Gemini разобраться в заголовках.
   if (!map.customer || !map.amount) {
     try {
       const aiMap = await mapByAI(headers);
-      map = { ...aiMap, ...map }; // словарные совпадения важнее — они точные
+      map = { ...aiMap, ...map };
       aiUsed = true;
     } catch {
-      // Если AI недоступен — продолжаем с тем, что есть от словаря.
+      /* AI недоступен — работаем со словарём */
     }
   }
-
   if (!map.customer || !map.amount) {
-    return {
-      ok: false,
-      error:
-        "Не удалось понять колонки файла. Нужны как минимум колонки с клиентом и суммой сделки.",
-    };
+    throw new Error(
+      `Не удалось понять колонки файла «${file.name}». Нужны хотя бы клиент и сумма.`,
+    );
   }
 
-  // Подпись существующих сделок пользователя — чтобы не задваивать при повторной загрузке.
-  const existing = await db
-    .select({
-      customer: deals.customer,
-      amount: deals.amount,
-      dealDate: deals.dealDate,
-      manager: deals.manager,
-    })
-    .from(deals)
-    .where(eq(deals.userId, userId));
-  const signature = (customer: string, amount: string, date: Date, manager: string) =>
-    `${customer}|${amount}|${date.toISOString().slice(0, 10)}|${manager}`;
-  const seen = new Set(
-    existing.map((d) => signature(d.customer, d.amount, d.dealDate, d.manager)),
-  );
-
-  const toInsert: NewDeal[] = [];
-  let skipped = 0; // некорректные строки
-  let duplicates = 0; // дубли
+  const out: NewDeal[] = [];
+  let skipped = 0;
+  let duplicates = 0;
 
   for (const row of rows) {
     const customer = valueOf(row, map.customer);
     const amount = parseAmount(valueOf(row, map.amount));
-
     if (!customer || !Number.isFinite(amount) || amount <= 0) {
       skipped++;
       continue;
     }
-
     const status = normalizeStatus(valueOf(row, map.status));
     const date = parseDate(valueOf(row, map.date)) ?? new Date();
     const manager = valueOf(row, map.manager);
     const isClosed = status === "won" || status === "lost";
     const amountStr = amount.toFixed(2);
-    // Этап воронки: из колонки, иначе выводим из статуса.
     const stage = normalizeStage(valueOf(row, map.stage)) ?? (isClosed ? "closed" : "lead");
 
     const sig = signature(customer, amountStr, date, manager);
@@ -278,9 +279,9 @@ export async function importFile(formData: FormData): Promise<ImportResult> {
       duplicates++;
       continue;
     }
-    seen.add(sig); // ловим дубли и внутри самого файла
+    seen.add(sig);
 
-    toInsert.push({
+    out.push({
       userId,
       customer,
       manager,
@@ -296,15 +297,55 @@ export async function importFile(formData: FormData): Promise<ImportResult> {
     });
   }
 
+  return { deals: out, skipped, duplicates, aiUsed };
+}
+
+export async function importFile(formData: FormData): Promise<ImportResult> {
+  const { userId } = await auth();
+  if (!userId) return { ok: false, error: "Не авторизован" };
+
+  const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) return { ok: false, error: "Файл не выбран." };
+
+  // Подпись существующих сделок — чтобы не задваивать (и между файлами тоже).
+  const existing = await db
+    .select({
+      customer: deals.customer,
+      amount: deals.amount,
+      dealDate: deals.dealDate,
+      manager: deals.manager,
+    })
+    .from(deals)
+    .where(eq(deals.userId, userId));
+  const seen = new Set(
+    existing.map((d) => signature(d.customer, d.amount, d.dealDate, d.manager)),
+  );
+
+  const toInsert: NewDeal[] = [];
+  let skipped = 0;
+  let duplicates = 0;
+  let aiUsed = false;
+
+  for (const file of files) {
+    try {
+      const res = await processOneFile(file, userId, seen);
+      toInsert.push(...res.deals);
+      skipped += res.skipped;
+      duplicates += res.duplicates;
+      aiUsed = aiUsed || res.aiUsed;
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Не удалось прочитать файл." };
+    }
+  }
+
   if (toInsert.length === 0) {
     const reason =
       duplicates > 0
         ? "Все строки уже есть в базе (дубли не добавляем)."
-        : "Колонки распознаны, но не нашлось ни одной корректной строки (проверьте суммы).";
+        : "Не нашлось ни одной корректной строки (проверьте суммы и колонки).";
     return { ok: false, error: reason };
   }
 
-  // Вставляем частями, чтобы не упереться в лимит запроса Postgres на больших файлах.
   const CHUNK = 500;
   for (let i = 0; i < toInsert.length; i += CHUNK) {
     await db.insert(deals).values(toInsert.slice(i, i + CHUNK));
