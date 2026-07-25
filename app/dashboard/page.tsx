@@ -7,6 +7,7 @@ import { InsightsPanel } from "./InsightsPanel";
 import { ImportPanel } from "./ImportPanel";
 import { ResetButton } from "./ResetButton";
 import { Charts } from "./Charts";
+import { FilterBar } from "./FilterBar";
 
 // Формат суммы с учётом валюты сделки.
 const money = (n: number, currency = "RUB") =>
@@ -25,14 +26,18 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 const MAX_ROWS = 50; // сколько строк показываем в таблице
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { userId } = await auth();
   const user = await currentUser();
 
-  let rows: Deal[];
+  let allRows: Deal[];
   let dbError = false;
   try {
-    rows = userId
+    allRows = userId
       ? await db
           .select()
           .from(deals)
@@ -40,9 +45,34 @@ export default async function DashboardPage() {
           .orderBy(desc(deals.createdAt))
       : [];
   } catch {
-    rows = [];
+    allRows = [];
     dbError = true;
   }
+
+  // ─── Фильтры из URL ───
+  const sp = await searchParams;
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const fPeriod = one(sp.period);
+  const fManager = one(sp.manager);
+  const fRegion = one(sp.region);
+  const fStatus = one(sp.status);
+
+  // Варианты для выпадающих списков — из всех сделок пользователя.
+  const managers = [...new Set(allRows.map((d) => d.manager).filter(Boolean))].sort();
+  const regions = [...new Set(allRows.map((d) => d.region).filter(Boolean))].sort();
+
+  // Применяем фильтры.
+  const periodDays = fPeriod && fPeriod !== "all" ? Number(fPeriod) : null;
+  const since =
+    periodDays != null ? new Date(Date.now() - periodDays * 86400000) : null;
+
+  const rows = allRows.filter((d) => {
+    if (since && d.dealDate < since) return false;
+    if (fManager && d.manager !== fManager) return false;
+    if (fRegion && d.region !== fRegion) return false;
+    if (fStatus && d.status !== fStatus) return false;
+    return true;
+  });
 
   if (dbError) {
     return (
@@ -117,6 +147,9 @@ export default async function DashboardPage() {
         </h1>
         {rows.length > 0 && <ResetButton />}
       </div>
+
+      {/* Фильтры */}
+      {allRows.length > 0 && <FilterBar managers={managers} regions={regions} />}
 
       {/* Метрики */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -211,7 +244,9 @@ export default async function DashboardPage() {
       {/* Список сделок */}
       {rows.length === 0 ? (
         <p className="text-zinc-500">
-          Сделок пока нет — добавьте вручную ниже или загрузите файл выше.
+          {allRows.length === 0
+            ? "Сделок пока нет — добавьте вручную ниже или загрузите файл выше."
+            : "Под выбранные фильтры сделок не нашлось."}
         </p>
       ) : (
         <div className="flex flex-col gap-2">
