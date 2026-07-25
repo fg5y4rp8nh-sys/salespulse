@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { deleteDeal } from "./actions";
+import { deleteDeal, updateDeal } from "./actions";
 import { money, STATUS } from "./reportClient";
 
 export type TableDeal = {
@@ -38,6 +38,28 @@ export function DealsTable({
   const [sortKey, setSortKey] = useState<SortKey>("dealDate");
   const [asc, setAsc] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [editId, setEditId] = useState<number | null>(null);
+  const [draft, setDraft] = useState<TableDeal | null>(null);
+
+  function startEdit(d: TableDeal) {
+    setEditId(d.id);
+    setDraft({ ...d });
+  }
+  function saveEdit() {
+    if (!draft) return;
+    startTransition(async () => {
+      await updateDeal(draft.id, {
+        customer: draft.customer,
+        manager: draft.manager,
+        region: draft.region,
+        amount: String(draft.amount),
+        status: draft.status,
+        dealDate: draft.dealDate.slice(0, 10),
+      });
+      setEditId(null);
+      setDraft(null);
+    });
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -100,6 +122,43 @@ export function DealsTable({
           <tbody>
             {visible.map((d) => {
               const st = STATUS[d.status] ?? STATUS.open;
+              const editing = deletable && editId === d.id && draft;
+
+              if (editing) {
+                const inp =
+                  "w-full rounded border border-black/15 bg-transparent px-1.5 py-1 text-sm dark:border-white/20";
+                return (
+                  <tr key={d.id} className="border-b border-black/5 dark:border-white/5">
+                    <td className="py-1 pr-2">
+                      <input type="date" className={inp} value={draft!.dealDate.slice(0, 10)} onChange={(e) => setDraft({ ...draft!, dealDate: e.target.value })} />
+                    </td>
+                    <td className="py-1 pr-2">
+                      <input className={inp} value={draft!.customer} onChange={(e) => setDraft({ ...draft!, customer: e.target.value })} />
+                    </td>
+                    <td className="py-1 pr-2">
+                      <input className={inp} value={draft!.manager} onChange={(e) => setDraft({ ...draft!, manager: e.target.value })} />
+                    </td>
+                    <td className="py-1 pr-2">
+                      <input className={inp} value={draft!.region} onChange={(e) => setDraft({ ...draft!, region: e.target.value })} />
+                    </td>
+                    <td className="py-1 pr-2">
+                      <input type="number" className={inp} value={draft!.amount} onChange={(e) => setDraft({ ...draft!, amount: Number(e.target.value) })} />
+                    </td>
+                    <td className="py-1 pr-2">
+                      <select className={inp} value={draft!.status} onChange={(e) => setDraft({ ...draft!, status: e.target.value })}>
+                        <option value="open">В работе</option>
+                        <option value="won">Выиграна</option>
+                        <option value="lost">Проиграна</option>
+                      </select>
+                    </td>
+                    <td className="py-1 whitespace-nowrap text-right">
+                      <button type="button" disabled={isPending} onClick={saveEdit} className="mr-2 text-green-600 disabled:opacity-50" title="Сохранить">✓</button>
+                      <button type="button" onClick={() => { setEditId(null); setDraft(null); }} className="text-zinc-400" title="Отмена">✕</button>
+                    </td>
+                  </tr>
+                );
+              }
+
               return (
                 <tr key={d.id} className="border-b border-black/5 dark:border-white/5">
                   <td className="py-2 pr-4 whitespace-nowrap">
@@ -117,14 +176,21 @@ export function DealsTable({
                     </span>
                   </td>
                   {deletable && (
-                    <td className="py-2 text-right">
+                    <td className="py-2 whitespace-nowrap text-right">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(d)}
+                        className="mr-3 text-zinc-400 transition-colors hover:text-foreground"
+                        aria-label="Редактировать" title="Редактировать"
+                      >
+                        ✎
+                      </button>
                       <button
                         type="button"
                         disabled={isPending}
                         onClick={() => startTransition(() => deleteDeal(d.id))}
                         className="text-zinc-400 transition-colors hover:text-red-600 disabled:opacity-50"
-                        aria-label="Удалить сделку"
-                        title="Удалить"
+                        aria-label="Удалить сделку" title="Удалить"
                       >
                         ✕
                       </button>

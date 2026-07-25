@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
-import { deals, type Deal } from "@/db/schema";
+import { deals, insights, type Deal } from "@/db/schema";
 import { analyze, revenueDelta } from "@/lib/analytics";
 import { addDeal } from "./actions";
 import { InsightsPanel } from "./InsightsPanel";
@@ -74,6 +74,26 @@ export default async function DashboardPage({
     );
   }
 
+  // Последние сохранённые AI-инсайты (история).
+  let pastInsights: { id: number; content: string; createdAt: string }[] = [];
+  if (userId) {
+    try {
+      const list = await db
+        .select()
+        .from(insights)
+        .where(eq(insights.userId, userId))
+        .orderBy(desc(insights.createdAt))
+        .limit(5);
+      pastInsights = list.map((i) => ({
+        id: i.id,
+        content: i.content,
+        createdAt: i.createdAt.toISOString(),
+      }));
+    } catch {
+      /* история необязательна */
+    }
+  }
+
   const a = analyze(rows);
 
   // Динамика выручки к предыдущему периоду (только когда выбран период).
@@ -108,7 +128,7 @@ export default async function DashboardPage({
 
       <ImportPanel />
 
-      <InsightsPanel />
+      <InsightsPanel history={pastInsights} />
 
       {/* Форма добавления сделки вручную */}
       <form

@@ -38,6 +38,44 @@ export async function addDeal(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+// Серверное действие: обновляет одну сделку текущего пользователя.
+export type DealPatch = {
+  customer: string;
+  manager: string;
+  region: string;
+  amount: string;
+  status: string;
+  dealDate: string; // ISO / yyyy-mm-dd
+};
+
+export async function updateDeal(id: number, patch: DealPatch) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Не авторизован");
+
+  const customer = patch.customer.trim();
+  const amount = Number(patch.amount);
+  if (!customer || !Number.isFinite(amount) || amount <= 0) return;
+
+  const isClosed = patch.status === "won" || patch.status === "lost";
+  const date = new Date(patch.dealDate);
+
+  await db
+    .update(deals)
+    .set({
+      customer,
+      manager: patch.manager.trim(),
+      region: patch.region.trim(),
+      amount: amount.toFixed(2),
+      status: patch.status,
+      stage: isClosed ? "closed" : "lead",
+      dealDate: isNaN(date.getTime()) ? new Date() : date,
+      closedAt: isClosed ? new Date() : null,
+    })
+    .where(and(eq(deals.id, id), eq(deals.userId, userId)));
+
+  revalidatePath("/dashboard");
+}
+
 // Серверное действие: удаляет одну сделку текущего пользователя.
 export async function deleteDeal(id: number) {
   const { userId } = await auth();

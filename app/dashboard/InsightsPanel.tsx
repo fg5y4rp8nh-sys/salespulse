@@ -4,9 +4,12 @@ import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { getInsights } from "./insights";
 
-export function InsightsPanel() {
+type HistoryItem = { id: number; content: string; createdAt: string };
+
+export function InsightsPanel({ history = [] }: { history?: HistoryItem[] }) {
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const [isPending, startTransition] = useTransition();
   const params = useSearchParams();
 
@@ -51,6 +54,32 @@ export function InsightsPanel() {
         <p className="text-sm text-zinc-500">
           Нажмите кнопку — Gemini проанализирует ваши сделки.
         </p>
+      )}
+
+      {history.length > 0 && (
+        <div className="border-t border-black/10 pt-3 dark:border-white/10">
+          <button
+            type="button"
+            onClick={() => setShowHistory((v) => !v)}
+            className="text-sm text-zinc-500 hover:text-foreground"
+          >
+            {showHistory ? "Скрыть историю" : `История инсайтов (${history.length})`}
+          </button>
+          {showHistory && (
+            <ul className="mt-3 flex flex-col gap-3">
+              {history.map((h) => (
+                <li key={h.id} className="rounded-lg bg-black/[.03] p-3 text-sm dark:bg-white/[.04]">
+                  <div className="mb-1 text-xs text-zinc-500">
+                    {new Date(h.createdAt).toLocaleString("ru-RU")}
+                  </div>
+                  <p className="whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">
+                    {h.content}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </section>
   );
