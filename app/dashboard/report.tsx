@@ -13,10 +13,10 @@ function Metric({
   delta?: number | null;
 }) {
   return (
-    <div className="rounded-xl border border-black/10 p-4 dark:border-white/10">
-      <div className="text-sm text-zinc-500">{label}</div>
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-2xl font-semibold">{value}</span>
+    <div className="min-w-0 rounded-xl border border-black/10 p-4 dark:border-white/10">
+      <div className="truncate text-sm text-zinc-500">{label}</div>
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+        <span className="text-xl font-semibold tabular-nums sm:text-2xl">{value}</span>
         {delta != null && (
           <span
             className={`text-sm font-medium ${

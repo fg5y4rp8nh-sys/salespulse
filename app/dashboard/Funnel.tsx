@@ -29,19 +29,19 @@ export function Funnel({ stageCounts }: { stageCounts: Record<string, number> })
           const conv = i > 0 && prev > 0 ? Math.round((count / prev) * 100) : null;
           return (
             <div key={stage} className="flex items-center gap-3">
-              <div className="w-28 shrink-0 text-sm text-zinc-500">{label}</div>
-              <div className="relative h-8 flex-1 overflow-hidden rounded-md bg-black/[.04] dark:bg-white/[.06]">
-                <div
-                  className="flex h-full items-center rounded-md px-2 text-xs font-medium text-white transition-all"
-                  style={{
-                    width: `${Math.max(pct, 6)}%`,
-                    background: "var(--chart-1)",
-                  }}
-                >
-                  {count}
-                </div>
+              <div className="w-24 shrink-0 truncate text-sm text-zinc-500 sm:w-28">
+                {label}
               </div>
-              <div className="w-12 shrink-0 text-right text-xs text-zinc-500">
+              <div className="h-8 flex-1 overflow-hidden rounded-md bg-black/[.04] dark:bg-white/[.06]">
+                <div
+                  className="h-full rounded-md transition-all"
+                  style={{ width: `${Math.max(pct, 2)}%`, background: "var(--chart-1)" }}
+                />
+              </div>
+              <div className="w-10 shrink-0 text-right text-sm font-medium tabular-nums">
+                {count}
+              </div>
+              <div className="w-12 shrink-0 text-right text-xs text-zinc-500 tabular-nums">
                 {conv != null ? `${conv}%` : ""}
               </div>
             </div>
