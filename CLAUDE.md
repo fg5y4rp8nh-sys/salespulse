@@ -71,12 +71,21 @@ B2B-дашборд аналитики продаж с AI-инсайтами. К�
 
 - ✅ Окружение, локальный запуск, GitHub, деплой на Vercel
 - ✅ Авторизация Clerk (`proxy.ts` защищает `/dashboard`)
-- ✅ БД Neon + Drizzle, базовый дашборд с CRUD
-- ✅ AI-инсайты через Gemini (кнопка на дашборде)
-- ✅ **2026-схема:** `deals` (stage, probability, expectedCloseDate, healthScore, source,
-  lostReason, currency, lastActivityAt, manager, region, dealDate) + таблицы `activities`,
-  `targets`, `insights`. UI для этих полей — впереди.
-- ⬜ Загрузка CSV → парсинг → база
-- ⬜ 4 карточки-метрики + 3 графика (Recharts), воронка продаж
-- ⬜ Фильтры (даты/менеджер/регион/статус)
-- ⬜ Экспорт в PDF (jsPDF), демо-режим («Try Demo»)
+- ✅ БД Neon + Drizzle. **2026-схема** `deals` (stage, probability, healthScore, source и т.д.)
+  + таблицы `activities`, `targets`, `insights`.
+- ✅ **Импорт файлов:** CSV/TSV/Excel/ODS/JSON + **PDF/сканы/фото через Gemini vision**.
+  AI-распознавание колонок, надёжный разбор дат/сумм, дедуп, вставка частями, мультизагрузка.
+- ✅ **Дашборд:** 4 метрики (+динамика выручки к прошлому периоду), 3 графика (Recharts),
+  воронка продаж, фильтры (период/менеджер/регион/статус), таблица с поиском/сортировкой/удалением.
+- ✅ **AI-инсайты** (Gemini): учитывают менеджера/регион/дату, учитывают фильтры, сохраняются в БД.
+- ✅ **Экспорт в PDF** (html-to-image + jsPDF), **демо-режим** `/demo` (без входа).
+
+### Ключевые файлы
+- `lib/analytics.ts` — вся аналитика (метрики, графики, воронка) из массива сделок.
+- `app/dashboard/` — дашборд: `page.tsx`, `report.tsx`, `Charts.tsx`, `Funnel.tsx`,
+  `FilterBar.tsx`, `DealsTable.tsx`, `ImportPanel.tsx`/`import.ts`, `InsightsPanel.tsx`/`insights.ts`,
+  `actions.ts` (add/delete/reset), `ExportButton.tsx`, `ResetButton.tsx`.
+- `app/demo/page.tsx` — витрина с вымышленными данными (переиспользует `report.tsx` + `DealsTable`).
+
+### Идеи на будущее
+- Редактирование сделки inline · «выручка к прошлому периоду» на всех метриках · история инсайтов в UI.
