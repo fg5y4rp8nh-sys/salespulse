@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -68,6 +69,14 @@ export function Charts({
   topManagers: ManagerPoint[];
   byRegion: RegionPoint[];
 }) {
+  // Рисуем графики только после монтирования — иначе Recharts может измерить
+  // ширину как 0 и оставить область пустой (особенно на статичных страницах).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) {
+    return <div className="h-72 w-full animate-pulse rounded-xl bg-black/[.03] dark:bg-white/[.04]" />;
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       {/* Выручка по месяцам — линия */}
