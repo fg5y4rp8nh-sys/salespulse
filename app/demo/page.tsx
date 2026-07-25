@@ -92,10 +92,7 @@ export default function DemoPage() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-        <p className="text-sm">
-          <span className="font-semibold">Демо-режим.</span> Данные вымышленные, ничего
-          не сохраняется.
-        </p>
+        <p className="text-sm font-semibold">Демо-режим</p>
         <Link
           href="/dashboard"
           className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background"
@@ -111,7 +108,8 @@ export default function DemoPage() {
         <div>
           <h2 className="text-lg font-semibold">Как это работает</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Ниже — тот же дашборд, что получите вы, но на вымышленных данных. Попробуйте
+            Это витрина на примере вымышленной компании — чтобы показать, как SalesPulse
+            выглядит в работе. На вашем дашборде здесь будут ваши продажи. Попробуйте
             вживую:
           </p>
         </div>
@@ -137,12 +135,6 @@ export default function DemoPage() {
             <li>• Регистрация нужна, чтобы данные <b>сохранялись</b> и были доступны только вам (никто другой их не видит).</li>
             <li>• Только на своих данных заработают <b>AI-инсайты</b> («почему упала выручка и что делать») и <b>экспорт отчёта в PDF</b>.</li>
           </ul>
-          <Link
-            href="/dashboard"
-            className="mt-3 inline-block rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background"
-          >
-            Загрузить свои данные →
-          </Link>
         </div>
       </div>
 
