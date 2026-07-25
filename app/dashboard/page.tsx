@@ -6,6 +6,7 @@ import { addDeal } from "./actions";
 import { InsightsPanel } from "./InsightsPanel";
 import { ImportPanel } from "./ImportPanel";
 import { ResetButton } from "./ResetButton";
+import { Charts } from "./Charts";
 
 // Формат суммы с учётом валюты сделки.
 const money = (n: number, currency = "RUB") =>
@@ -70,6 +71,41 @@ export default async function DashboardPage() {
   const mainCurrency = rows[0]?.currency ?? "RUB";
   const visibleRows = rows.slice(0, MAX_ROWS);
 
+  // ─── Данные для графиков (только выигранные сделки = реальная выручка) ───
+  const won = rows.filter((d) => d.status === "won");
+
+  const monthMap = new Map<string, number>();
+  for (const d of won) {
+    const key = d.dealDate.toISOString().slice(0, 7); // YYYY-MM
+    monthMap.set(key, (monthMap.get(key) ?? 0) + Number(d.amount));
+  }
+  const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  const revenueByMonth = [...monthMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, revenue]) => {
+      const [y, m] = key.split("-");
+      return { month: `${MONTHS[Number(m) - 1]} ${y.slice(2)}`, revenue };
+    });
+
+  const managerMap = new Map<string, number>();
+  for (const d of won) {
+    const name = d.manager || "Без менеджера";
+    managerMap.set(name, (managerMap.get(name) ?? 0) + Number(d.amount));
+  }
+  const topManagers = [...managerMap.entries()]
+    .map(([manager, revenue]) => ({ manager, revenue }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+
+  const regionMap = new Map<string, number>();
+  for (const d of won) {
+    const name = d.region || "Без региона";
+    regionMap.set(name, (regionMap.get(name) ?? 0) + Number(d.amount));
+  }
+  const byRegion = [...regionMap.entries()]
+    .map(([region, value]) => ({ region, value }))
+    .sort((a, b) => b.value - a.value);
+
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -89,6 +125,15 @@ export default async function DashboardPage() {
         <Metric label="Средний чек" value={money(avgCheck, mainCurrency)} />
         <Metric label="Конверсия" value={`${conversion}%`} />
       </div>
+
+      {/* Графики (когда есть выигранные сделки) */}
+      {won.length > 0 && (
+        <Charts
+          revenueByMonth={revenueByMonth}
+          topManagers={topManagers}
+          byRegion={byRegion}
+        />
+      )}
 
       {/* Загрузка CSV */}
       <ImportPanel />
