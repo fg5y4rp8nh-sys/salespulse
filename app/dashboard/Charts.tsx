@@ -116,8 +116,8 @@ export function Charts({
             <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="manager" tick={axisTick} tickLine={false} axisLine={false} interval={0} />
             <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={64} />
-            <Tooltip contentStyle={tooltipStyle} formatter={full} cursor={{ fill: "var(--chart-grid)" }} />
-            <Bar dataKey="revenue" name="Выручка" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={64} />
+            <Tooltip contentStyle={tooltipStyle} formatter={full} cursor={false} />
+            <Bar dataKey="revenue" name="Выручка" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={64} activeBar={false} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -133,10 +133,7 @@ export function Charts({
               cx="50%"
               cy="45%"
               outerRadius="72%"
-              label={(p: { percent?: number }) =>
-                p.percent && p.percent > 0.05 ? `${Math.round(p.percent * 100)}%` : ""
-              }
-              labelLine={false}
+              isAnimationActive={false}
             >
               {byRegion.map((_, i) => (
                 <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="var(--background)" strokeWidth={2} />

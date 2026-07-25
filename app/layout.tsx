@@ -37,11 +37,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col">
-          <header className="flex items-center justify-between border-b border-black/10 px-6 py-4 dark:border-white/10">
+          <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-black/10 px-4 py-4 sm:px-6 dark:border-white/10">
             <Link href="/" className="text-lg font-semibold">
               SalesPulse
             </Link>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <Show when="signed-out">
                 <SignInButton mode="modal">
                   <button className="text-sm font-medium">Войти</button>

@@ -71,7 +71,7 @@ export default async function DashboardPage({
 
   if (dbError) {
     return (
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-6 py-10">
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 py-10 sm:px-6">
         <h1 className="text-2xl font-semibold">Дашборд</h1>
         <p className="text-red-600">
           Не удалось подключиться к базе данных. Попробуйте обновить страницу позже.
@@ -114,7 +114,7 @@ export default async function DashboardPage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">
           Дашборд ·{" "}

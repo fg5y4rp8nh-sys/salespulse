@@ -22,7 +22,7 @@ export function Funnel({ stageCounts }: { stageCounts: Record<string, number> })
     <div className="flex flex-col gap-3 rounded-xl border border-black/10 p-4 dark:border-white/10">
       <div className="flex items-baseline justify-between">
         <h3 className="text-sm font-semibold text-zinc-500">Воронка продаж</h3>
-        <div className="flex gap-4 text-xs text-zinc-400">
+        <div className="flex gap-3 text-xs text-zinc-400">
           <span className="w-12 text-right">Сделок</span>
           <span className="w-14 text-right">Переход</span>
         </div>

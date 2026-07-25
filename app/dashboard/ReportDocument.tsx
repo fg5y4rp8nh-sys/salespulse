@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  Legend,
 } from "recharts";
 import type { Analytics } from "@/lib/analytics";
 import { money } from "./reportClient";
@@ -156,18 +157,15 @@ export function ReportDocument({
                       dataKey="value"
                       nameKey="region"
                       cx="50%"
-                      cy="50%"
-                      outerRadius="80%"
+                      cy="45%"
+                      outerRadius="78%"
                       isAnimationActive={false}
-                      label={(p: { region?: string; percent?: number }) =>
-                        p.percent && p.percent > 0.06 ? `${p.region} ${Math.round(p.percent * 100)}%` : ""
-                      }
-                      labelLine={false}
                     >
                       {a.byRegion.map((_, i) => (
                         <Cell key={i} fill={PIE[i % PIE.length]} stroke="#fff" strokeWidth={2} />
                       ))}
                     </Pie>
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

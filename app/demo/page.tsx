@@ -90,7 +90,7 @@ export default function DemoPage() {
   const a = analyze(rows);
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
         <p className="text-sm">
           <span className="font-semibold">Демо-режим.</span> Данные вымышленные, ничего
