@@ -2,8 +2,8 @@
 
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   PieChart,
@@ -74,13 +74,28 @@ export function Charts({
       <div className="lg:col-span-2">
         <Card title="Выручка по месяцам">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={revenueByMonth} margin={{ top: 8, right: 24, bottom: 4, left: 8 }}>
+            <AreaChart data={revenueByMonth} margin={{ top: 8, right: 24, bottom: 4, left: 8 }}>
+              <defs>
+                <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
               <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-              <XAxis dataKey="month" tick={axisTick} tickLine={false} axisLine={false} interval={0} minTickGap={0} />
+              <XAxis dataKey="month" tick={axisTick} tickLine={false} axisLine={false} interval={0} minTickGap={0} padding={{ left: 6, right: 6 }} />
               <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={64} />
               <Tooltip contentStyle={tooltipStyle} formatter={full} />
-              <Line type="monotone" dataKey="revenue" name="Выручка" stroke="var(--chart-1)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-            </LineChart>
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                name="Выручка"
+                stroke="var(--chart-1)"
+                strokeWidth={2.5}
+                fill="url(#revFill)"
+                dot={{ r: 3, strokeWidth: 0, fill: "var(--chart-1)" }}
+                activeDot={{ r: 5 }}
+              />
+            </AreaChart>
           </ResponsiveContainer>
         </Card>
       </div>

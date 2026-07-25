@@ -8,9 +8,15 @@ import { InsightsPanel } from "./InsightsPanel";
 import { ImportPanel } from "./ImportPanel";
 import { ResetButton } from "./ResetButton";
 import { FilterBar } from "./FilterBar";
-import { ExportButton } from "./ExportButton";
+import { PdfExport } from "./PdfExport";
 import { Report } from "./report";
 import { DealsTable, type TableDeal } from "./DealsTable";
+
+const PERIOD_LABELS: Record<string, string> = {
+  "7": "период: 7 дней",
+  "30": "период: 30 дней",
+  "90": "период: 90 дней",
+};
 
 const toTableDeal = (d: Deal): TableDeal => ({
   id: d.id,
@@ -117,7 +123,21 @@ export default async function DashboardPage({
           </span>
         </h1>
         <div className="flex items-center gap-2">
-          {rows.length > 0 && <ExportButton />}
+          {rows.length > 0 && (
+            <PdfExport
+              a={a}
+              meta={{
+                date: new Date().toLocaleDateString("ru-RU"),
+                scope: [
+                  PERIOD_LABELS[fPeriod ?? ""] ?? "весь период",
+                  fManager && `менеджер: ${fManager}`,
+                  fRegion && `регион: ${fRegion}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
+              }}
+            />
+          )}
           {allRows.length > 0 && <ResetButton />}
         </div>
       </div>
