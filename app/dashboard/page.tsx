@@ -8,6 +8,7 @@ import { ImportPanel } from "./ImportPanel";
 import { ResetButton } from "./ResetButton";
 import { Charts } from "./Charts";
 import { FilterBar } from "./FilterBar";
+import { Funnel } from "./Funnel";
 
 // Формат суммы с учётом валюты сделки.
 const money = (n: number, currency = "RUB") =>
@@ -136,6 +137,12 @@ export default async function DashboardPage({
     .map(([region, value]) => ({ region, value }))
     .sort((a, b) => b.value - a.value);
 
+  // Этапы воронки (по всем отфильтрованным сделкам).
+  const stageCounts: Record<string, number> = {};
+  for (const d of rows) {
+    stageCounts[d.stage] = (stageCounts[d.stage] ?? 0) + 1;
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -167,6 +174,9 @@ export default async function DashboardPage({
           byRegion={byRegion}
         />
       )}
+
+      {/* Воронка продаж */}
+      {rows.length > 0 && <Funnel stageCounts={stageCounts} />}
 
       {/* Загрузка CSV */}
       <ImportPanel />

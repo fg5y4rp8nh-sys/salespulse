@@ -16,7 +16,7 @@ export type ImportResult =
 type Row = Record<string, unknown>;
 
 // Наши поля и словарь синонимов заголовков (рус/англ) для быстрого распознавания.
-const FIELDS = ["customer", "manager", "region", "source", "amount", "status", "date"] as const;
+const FIELDS = ["customer", "manager", "region", "source", "amount", "status", "stage", "date"] as const;
 type Field = (typeof FIELDS)[number];
 type Mapping = Partial<Record<Field, string>>; // поле -> имя колонки в файле
 
@@ -26,9 +26,25 @@ const DICTIONARY: Record<Field, string[]> = {
   region: ["region", "регион", "area", "область", "территория"],
   source: ["source", "источник", "channel", "канал"],
   amount: ["amount", "сумма", "revenue", "выручка", "value", "deal value", "стоимость"],
-  status: ["status", "статус", "stage", "этап"],
+  status: ["status", "статус", "state"],
+  stage: ["stage", "этап", "pipeline stage", "воронка", "фаза"],
   date: ["date", "дата", "deal_date", "дата сделки", "created", "closed date"],
 };
+
+// Канонические этапы воронки по порядку.
+const STAGES = ["lead", "qualified", "proposal", "negotiation", "closed"] as const;
+
+// Нормализует этап воронки. Если нет — вернём null (тогда выведем из статуса).
+function normalizeStage(raw: string): string | null {
+  const s = raw.trim().toLowerCase();
+  if (!s) return null;
+  if (["lead", "лид", "new", "новый", "новая"].includes(s)) return "lead";
+  if (["qualified", "qualification", "квалификация", "квалифицирован"].includes(s)) return "qualified";
+  if (["proposal", "quote", "предложение", "кп"].includes(s)) return "proposal";
+  if (["negotiation", "переговоры"].includes(s)) return "negotiation";
+  if (["closed", "закрытие", "won", "lost", "выиграна", "проиграна", "закрыта"].includes(s)) return "closed";
+  return null;
+}
 
 // ─── Разбор файла в массив строк-объектов ───
 async function parseFile(file: File): Promise<Row[]> {
@@ -254,6 +270,8 @@ export async function importFile(formData: FormData): Promise<ImportResult> {
     const manager = valueOf(row, map.manager);
     const isClosed = status === "won" || status === "lost";
     const amountStr = amount.toFixed(2);
+    // Этап воронки: из колонки, иначе выводим из статуса.
+    const stage = normalizeStage(valueOf(row, map.stage)) ?? (isClosed ? "closed" : "lead");
 
     const sig = signature(customer, amountStr, date, manager);
     if (seen.has(sig)) {
@@ -271,7 +289,7 @@ export async function importFile(formData: FormData): Promise<ImportResult> {
       amount: amountStr,
       currency: detectCurrency(valueOf(row, map.amount)),
       status,
-      stage: isClosed ? "closed" : "lead",
+      stage,
       probability: status === "won" ? 100 : status === "lost" ? 0 : 20,
       dealDate: date,
       closedAt: isClosed ? new Date() : null,
