@@ -114,7 +114,7 @@ export function ReportDocument({
         <Section title="Выручка по месяцам">
           <div style={{ width: "100%", height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={a.revenueByMonth} margin={{ top: 6, right: 16, bottom: 0, left: 4 }}>
+              <AreaChart data={a.revenueByMonth} margin={{ top: 10, right: 20, bottom: 0, left: 12 }}>
                 <defs>
                   <linearGradient id="repRev" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={ACCENT} stopOpacity={0.35} />
@@ -122,8 +122,8 @@ export function ReportDocument({
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke={LINE} vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: MUTED }} tickLine={false} axisLine={false} interval={0} />
-                <YAxis tickFormatter={(v) => short(Number(v))} tick={{ fontSize: 11, fill: MUTED }} tickLine={false} axisLine={false} width={60} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: MUTED }} tickLine={false} axisLine={false} interval={0} padding={{ left: 6, right: 6 }} />
+                <YAxis tickFormatter={(v) => short(Number(v))} tick={{ fontSize: 11, fill: MUTED }} tickLine={false} axisLine={false} width={78} />
                 <Area type="monotone" dataKey="revenue" stroke={ACCENT} strokeWidth={2.5} fill="url(#repRev)" dot={{ r: 3, fill: ACCENT, strokeWidth: 0 }} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
@@ -163,7 +163,6 @@ export function ReportDocument({
                         p.percent && p.percent > 0.06 ? `${p.region} ${Math.round(p.percent * 100)}%` : ""
                       }
                       labelLine={false}
-                      style={{ fontSize: 11, fill: INK }}
                     >
                       {a.byRegion.map((_, i) => (
                         <Cell key={i} fill={PIE[i % PIE.length]} stroke="#fff" strokeWidth={2} />
