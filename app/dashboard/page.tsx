@@ -9,6 +9,7 @@ import { ResetButton } from "./ResetButton";
 import { Charts } from "./Charts";
 import { FilterBar } from "./FilterBar";
 import { Funnel } from "./Funnel";
+import { ExportButton } from "./ExportButton";
 
 // Формат суммы с учётом валюты сделки.
 const money = (n: number, currency = "RUB") =>
@@ -152,31 +153,37 @@ export default async function DashboardPage({
             {user?.firstName ?? user?.emailAddresses[0]?.emailAddress}
           </span>
         </h1>
-        {rows.length > 0 && <ResetButton />}
+        <div className="flex items-center gap-2">
+          {rows.length > 0 && <ExportButton />}
+          {rows.length > 0 && <ResetButton />}
+        </div>
       </div>
 
       {/* Фильтры */}
       {allRows.length > 0 && <FilterBar managers={managers} regions={regions} />}
 
-      {/* Метрики */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Metric label="Выручка" value={money(wonRevenue, mainCurrency)} />
-        <Metric label="Всего сделок" value={String(rows.length)} />
-        <Metric label="Средний чек" value={money(avgCheck, mainCurrency)} />
-        <Metric label="Конверсия" value={`${conversion}%`} />
+      {/* Область отчёта (попадает в PDF) */}
+      <div id="report" className="flex flex-col gap-8">
+        {/* Метрики */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Metric label="Выручка" value={money(wonRevenue, mainCurrency)} />
+          <Metric label="Всего сделок" value={String(rows.length)} />
+          <Metric label="Средний чек" value={money(avgCheck, mainCurrency)} />
+          <Metric label="Конверсия" value={`${conversion}%`} />
+        </div>
+
+        {/* Графики (когда есть выигранные сделки) */}
+        {won.length > 0 && (
+          <Charts
+            revenueByMonth={revenueByMonth}
+            topManagers={topManagers}
+            byRegion={byRegion}
+          />
+        )}
+
+        {/* Воронка продаж */}
+        {rows.length > 0 && <Funnel stageCounts={stageCounts} />}
       </div>
-
-      {/* Графики (когда есть выигранные сделки) */}
-      {won.length > 0 && (
-        <Charts
-          revenueByMonth={revenueByMonth}
-          topManagers={topManagers}
-          byRegion={byRegion}
-        />
-      )}
-
-      {/* Воронка продаж */}
-      {rows.length > 0 && <Funnel stageCounts={stageCounts} />}
 
       {/* Загрузка CSV */}
       <ImportPanel />
