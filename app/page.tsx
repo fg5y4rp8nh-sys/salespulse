@@ -16,10 +16,19 @@ export default function Home() {
         <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white text-balance sm:text-5xl">
           Аналитика продаж с AI-инсайтами
         </h1>
-        <p className="max-w-md text-lg text-zinc-300">
-          SalesPulse собирает ваши продажи в наглядный дашборд и подсказывает,
-          что упало и почему.
+        <p className="max-w-xl text-lg leading-relaxed text-zinc-300">
+          SalesPulse превращает вашу выгрузку продаж из Excel, CSV или CRM в готовый
+          дашборд за 30 секунд: ключевые метрики, графики, воронка сделок — и AI, который
+          человеческим языком объясняет, <span className="text-white">что изменилось и почему</span>,
+          и что с этим делать. Больше не нужно вручную сводить таблицы.
         </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-zinc-400">
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">📊 Метрики и графики</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">🔻 Воронка продаж</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">🤖 AI-инсайты</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">📄 Отчёт в PDF</span>
+        </div>
 
         <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
           <Show when="signed-out">
