@@ -38,7 +38,7 @@ export default function RootLayout({
       >
         <body className="min-h-full flex flex-col">
           <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-black/10 px-4 py-4 sm:px-6 dark:border-white/10">
-            <Link href="/" className="text-lg font-semibold">
+            <Link href="/" className="text-xl font-black uppercase tracking-[-0.03em]">
               SalesPulse
             </Link>
             <div className="flex items-center gap-3 sm:gap-4">
