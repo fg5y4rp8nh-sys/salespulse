@@ -43,6 +43,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Логотип-вордмарк: только контур букв (концепция Outline) */
+.wordmark-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.2px var(--foreground);
+  text-stroke: 1.2px var(--foreground);
+}
+.wordmark-outline .accent {
+  -webkit-text-stroke: 1.2px var(--chart-1);
+  text-stroke: 1.2px var(--chart-1);
+}
+
 /* Убираем фокус-обводку и подсветку-прямоугольники на графиках Recharts */
 .recharts-wrapper,
 .recharts-surface,
