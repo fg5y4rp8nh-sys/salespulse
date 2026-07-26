@@ -13,9 +13,9 @@ function Metric({
   delta?: number | null;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-black/10 p-4 dark:border-white/10">
+    <div className="min-w-0 rounded-xl border border-black/10 p-4 text-center dark:border-white/10">
       <div className="truncate text-sm text-zinc-500">{label}</div>
-      <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+      <div className="mt-1 flex flex-wrap items-baseline justify-center gap-x-2">
         <span className="text-xl font-semibold tabular-nums sm:text-2xl">{value}</span>
         {delta != null && (
           <span

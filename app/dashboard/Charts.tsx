@@ -83,7 +83,7 @@ export function Charts({
       <div className="lg:col-span-2">
         <Card title="Выручка по месяцам">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={revenueByMonth} margin={{ top: 8, right: 24, bottom: 4, left: 8 }}>
+            <AreaChart data={revenueByMonth} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
               <defs>
                 <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
@@ -92,7 +92,7 @@ export function Charts({
               </defs>
               <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="month" tick={axisTick} tickLine={false} axisLine={false} interval={0} minTickGap={0} padding={{ left: 6, right: 6 }} />
-              <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={64} />
+              <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={50} />
               <Tooltip contentStyle={tooltipStyle} formatter={full} />
               <Area
                 type="monotone"
@@ -112,10 +112,10 @@ export function Charts({
       {/* Топ-5 менеджеров — столбцы */}
       <Card title="Топ-5 менеджеров по выручке">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={topManagers} margin={{ top: 8, right: 16, bottom: 4, left: 8 }}>
+          <BarChart data={topManagers} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
             <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="manager" tick={axisTick} tickLine={false} axisLine={false} interval={0} />
-            <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={64} />
+            <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={50} />
             <Tooltip contentStyle={tooltipStyle} formatter={full} cursor={false} />
             <Bar dataKey="revenue" name="Выручка" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={64} activeBar={false} />
           </BarChart>
@@ -125,14 +125,14 @@ export function Charts({
       {/* По регионам — круговая */}
       <Card title="Выручка по регионам">
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+          <PieChart margin={{ top: 0, right: 4, bottom: 0, left: 4 }}>
             <Pie
               data={byRegion}
               dataKey="value"
               nameKey="region"
               cx="50%"
-              cy="45%"
-              outerRadius="72%"
+              cy="42%"
+              outerRadius="68%"
               isAnimationActive={false}
             >
               {byRegion.map((_, i) => (
@@ -140,7 +140,7 @@ export function Charts({
               ))}
             </Pie>
             <Tooltip contentStyle={tooltipStyle} formatter={full} />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Legend iconType="square" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
           </PieChart>
         </ResponsiveContainer>
       </Card>
