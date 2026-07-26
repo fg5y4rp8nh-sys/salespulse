@@ -53,8 +53,8 @@ const axisTick = { fontSize: 11, fill: "currentColor" };
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-black/10 p-4 dark:border-white/10">
-      <h3 className="text-sm font-semibold text-zinc-500">{title}</h3>
+    <div className="flex flex-col gap-3 rounded-xl border border-black/10 p-2 sm:p-4 dark:border-white/10">
+      <h3 className="px-2 pt-1 text-sm font-semibold text-zinc-500 sm:px-0 sm:pt-0">{title}</h3>
       <div className="h-72 w-full text-zinc-500">{children}</div>
     </div>
   );
@@ -83,7 +83,7 @@ export function Charts({
       <div className="lg:col-span-2">
         <Card title="Выручка по месяцам">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={revenueByMonth} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
+            <AreaChart data={revenueByMonth} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
               <defs>
                 <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
@@ -92,7 +92,7 @@ export function Charts({
               </defs>
               <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="month" tick={axisTick} tickLine={false} axisLine={false} minTickGap={14} padding={{ left: 6, right: 6 }} />
-              <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={56} />
+              <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={48} />
               <Tooltip contentStyle={tooltipStyle} formatter={full} />
               <Area
                 type="monotone"
@@ -112,10 +112,10 @@ export function Charts({
       {/* Топ-5 менеджеров — столбцы */}
       <Card title="Топ-5 менеджеров по выручке">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={topManagers} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
+          <BarChart data={topManagers} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
             <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="manager" tick={{ fontSize: 10, fill: "currentColor" }} tickLine={false} axisLine={false} interval={0} />
-            <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={56} />
+            <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={48} />
             <Tooltip contentStyle={tooltipStyle} formatter={full} cursor={false} />
             <Bar dataKey="revenue" name="Выручка" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={64} activeBar={false} />
           </BarChart>
