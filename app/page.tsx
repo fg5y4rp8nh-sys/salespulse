@@ -10,10 +10,14 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 flex flex-col items-center gap-6">
+        {/* Логотип-вордмарк (Heavy Impact) */}
+        <div className="text-5xl font-black uppercase tracking-[-0.04em] text-white sm:text-7xl">
+          SalesPulse
+        </div>
         <span className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-white/70 backdrop-blur">
           B2B-аналитика продаж с AI
         </span>
-        <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white text-balance sm:text-5xl">
+        <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-white text-balance sm:text-4xl">
           Аналитика продаж с AI-инсайтами
         </h1>
         <p className="max-w-xl text-lg leading-relaxed text-zinc-300">
