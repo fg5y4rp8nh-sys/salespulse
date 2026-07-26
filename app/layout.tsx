@@ -38,8 +38,14 @@ export default function RootLayout({
       >
         <body className="min-h-full flex flex-col">
           <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-black/10 px-4 py-4 sm:px-6 dark:border-white/10">
-            <Link href="/" className="text-xl font-black uppercase tracking-[-0.03em]">
-              SalesPulse
+            <Link
+              href="/"
+              className="inline-flex items-center text-xl font-black uppercase tracking-[-0.03em]"
+            >
+              <span>Sales</span>
+              <span className="ml-1 rounded-md border border-amber-400/70 px-1.5 text-amber-400">
+                Pulse
+              </span>
             </Link>
             <div className="flex items-center gap-3 sm:gap-4">
               <Show when="signed-out">
