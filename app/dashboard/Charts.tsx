@@ -16,6 +16,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { useT, useLocale } from "../I18nProvider";
 
 export type MonthPoint = { month: string; revenue: number };
 export type ManagerPoint = { manager: string; revenue: number };
@@ -30,17 +31,19 @@ const PIE_COLORS = [
   "var(--chart-6)",
 ];
 
-// Компактный, узкий и предсказуемый по ширине формат чисел.
-function short(n: number): string {
+// Компактный формат чисел с суффиксами по языку.
+const SUFFIX = {
+  en: { b: "B", m: "M", k: "K" },
+  ru: { b: " млрд", m: " млн", k: " тыс" },
+};
+function short(n: number, locale: "en" | "ru"): string {
+  const s = SUFFIX[locale] ?? SUFFIX.en;
   const abs = Math.abs(n);
-  if (abs >= 1e9) return (n / 1e9).toFixed(1).replace(/\.0$/, "") + " млрд";
-  if (abs >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, "") + " млн";
-  if (abs >= 1e3) return Math.round(n / 1e3) + " тыс";
+  if (abs >= 1e9) return (n / 1e9).toFixed(1).replace(/\.0$/, "") + s.b;
+  if (abs >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, "") + s.m;
+  if (abs >= 1e3) return Math.round(n / 1e3) + s.k;
   return String(Math.round(n));
 }
-const shortVal = (v: unknown) => short(Number(v));
-// Полный формат для подсказок.
-const full = (v: unknown) => new Intl.NumberFormat("ru-RU").format(Number(v)) + " ₽";
 
 const tooltipStyle = {
   background: "var(--background)",
@@ -53,8 +56,8 @@ const axisTick = { fontSize: 11, fill: "currentColor" };
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-black/10 p-2 sm:p-4 dark:border-white/10">
-      <h3 className="px-2 pt-1 text-sm font-semibold text-zinc-500 sm:px-0 sm:pt-0">{title}</h3>
+    <div className="flex flex-col gap-3 rounded-xl border border-black/10 px-2 py-3 sm:p-4 dark:border-white/10">
+      <h3 className="px-1 text-sm font-semibold text-zinc-500 sm:px-0">{title}</h3>
       <div className="h-72 w-full text-zinc-500">{children}</div>
     </div>
   );
@@ -69,6 +72,12 @@ export function Charts({
   topManagers: ManagerPoint[];
   byRegion: RegionPoint[];
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const shortVal = (v: unknown) => short(Number(v), locale);
+  const full = (v: unknown) =>
+    new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US").format(Number(v)) + " ₽";
+
   // Рисуем графики только после монтирования — иначе Recharts может измерить
   // ширину как 0 и оставить область пустой (особенно на статичных страницах).
   const [mounted, setMounted] = useState(false);
@@ -81,7 +90,7 @@ export function Charts({
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       {/* Выручка по месяцам — линия */}
       <div className="lg:col-span-2">
-        <Card title="Выручка по месяцам">
+        <Card title={t.chartRevenue}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={revenueByMonth} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
               <defs>
@@ -97,7 +106,7 @@ export function Charts({
               <Area
                 type="monotone"
                 dataKey="revenue"
-                name="Выручка"
+                name={t.seriesRevenue}
                 stroke="var(--chart-1)"
                 strokeWidth={2.5}
                 fill="url(#revFill)"
@@ -110,20 +119,20 @@ export function Charts({
       </div>
 
       {/* Топ-5 менеджеров — столбцы */}
-      <Card title="Топ-5 менеджеров по выручке">
+      <Card title={t.chartManagers}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={topManagers} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
             <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="manager" tick={{ fontSize: 10, fill: "currentColor" }} tickLine={false} axisLine={false} interval={0} />
             <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={48} />
             <Tooltip contentStyle={tooltipStyle} formatter={full} cursor={false} />
-            <Bar dataKey="revenue" name="Выручка" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={64} activeBar={false} />
+            <Bar dataKey="revenue" name={t.seriesRevenue} fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={64} activeBar={false} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
 
       {/* По регионам — круговая */}
-      <Card title="Выручка по регионам">
+      <Card title={t.chartRegions}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart margin={{ top: 0, right: 4, bottom: 0, left: 4 }}>
             <Pie

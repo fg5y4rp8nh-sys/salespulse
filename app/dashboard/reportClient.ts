@@ -7,8 +7,9 @@ export const money = (n: number, currency = "RUB") =>
     maximumFractionDigits: 0,
   }).format(n);
 
-export const STATUS: Record<string, { label: string; cls: string }> = {
-  won: { label: "Выиграна", cls: "bg-green-500/15 text-green-600" },
-  lost: { label: "Проиграна", cls: "bg-red-500/15 text-red-600" },
-  open: { label: "В работе", cls: "bg-amber-500/15 text-amber-600" },
+// Только классы цвета для статусов (подписи берутся из словаря локали).
+export const STATUS_CLS: Record<string, string> = {
+  won: "bg-green-500/15 text-green-600",
+  lost: "bg-red-500/15 text-red-600",
+  open: "bg-amber-500/15 text-amber-600",
 };

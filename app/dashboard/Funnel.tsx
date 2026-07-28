@@ -1,15 +1,23 @@
 // Воронка продаж. Показывает, сколько сделок дошло до каждого этапа (или дальше).
+import type { Dictionary } from "@/lib/i18n";
 
-const STAGE_LABELS: Record<string, string> = {
-  lead: "Лид",
-  qualified: "Квалификация",
-  proposal: "Предложение",
-  negotiation: "Переговоры",
-  closed: "Закрытие",
-};
-const ORDER = ["lead", "qualified", "proposal", "negotiation", "closed"];
+const ORDER = ["lead", "qualified", "proposal", "negotiation", "closed"] as const;
 
-export function Funnel({ stageCounts }: { stageCounts: Record<string, number> }) {
+export function Funnel({
+  stageCounts,
+  t,
+}: {
+  stageCounts: Record<string, number>;
+  t: Dictionary;
+}) {
+  const STAGE_LABELS: Record<string, string> = {
+    lead: t.stageLead,
+    qualified: t.stageQualified,
+    proposal: t.stageProposal,
+    negotiation: t.stageNegotiation,
+    closed: t.stageClosed,
+  };
+
   // Кумулятив: на этапе N считаем всех, кто дошёл до него или дальше.
   const cumulative = ORDER.map((stage, i) => {
     const reached = ORDER.slice(i).reduce((sum, s) => sum + (stageCounts[s] ?? 0), 0);
@@ -21,10 +29,10 @@ export function Funnel({ stageCounts }: { stageCounts: Record<string, number> })
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-black/10 p-4 dark:border-white/10">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold text-zinc-500">Воронка продаж</h3>
+        <h3 className="text-sm font-semibold text-zinc-500">{t.funnelTitle}</h3>
         <div className="flex gap-2 text-xs text-zinc-400 sm:gap-3">
-          <span className="w-10 text-right sm:w-12">Сделок</span>
-          <span className="w-12 text-right sm:w-14">Переход</span>
+          <span className="w-10 text-right sm:w-12">{t.funnelDeals}</span>
+          <span className="w-12 text-right sm:w-14">{t.funnelConv}</span>
         </div>
       </div>
       <div className="flex flex-col gap-2.5">

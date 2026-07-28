@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 import {
   ClerkProvider,
   Show,
@@ -9,6 +10,9 @@ import {
 } from "@clerk/nextjs";
 import Link from "next/link";
 import "./globals.css";
+import { normalizeLocale, getDict } from "@/lib/i18n";
+import { I18nProvider } from "./I18nProvider";
+import { LangToggle } from "./LangToggle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,48 +26,54 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "SalesPulse",
-  description: "B2B-дашборд аналитики продаж с AI-инсайтами",
+  description: "B2B sales analytics dashboard with AI insights",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = normalizeLocale((await cookies()).get("locale")?.value);
+  const t = getDict(locale);
+
   return (
     <ClerkProvider>
       <html
-        lang="ru"
+        lang={locale}
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col">
-          <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-black/10 px-4 py-4 sm:px-6 dark:border-white/10">
-            <Link
-              href="/"
-              className="wordmark-outline text-2xl font-extrabold tracking-[-0.01em]"
-            >
-              Sales<span className="accent">Pulse</span>
-            </Link>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <Show when="signed-out">
-                <SignInButton mode="modal">
-                  <button className="text-sm font-medium">Войти</button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <button className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background">
-                    Регистрация
-                  </button>
-                </SignUpButton>
-              </Show>
-              <Show when="signed-in">
-                <Link href="/dashboard" className="text-sm font-medium">
-                  Дашборд
-                </Link>
-                <UserButton />
-              </Show>
-            </div>
-          </header>
-          {children}
+          <I18nProvider locale={locale}>
+            <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-black/10 px-4 py-4 sm:px-6 dark:border-white/10">
+              <Link
+                href="/"
+                className="wordmark-outline text-2xl font-extrabold tracking-[-0.01em]"
+              >
+                Sales<span className="accent">Pulse</span>
+              </Link>
+              <div className="flex items-center gap-3 sm:gap-4">
+                <LangToggle />
+                <Show when="signed-out">
+                  <SignInButton mode="modal">
+                    <button className="text-sm font-medium">{t.signIn}</button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background">
+                      {t.signUp}
+                    </button>
+                  </SignUpButton>
+                </Show>
+                <Show when="signed-in">
+                  <Link href="/dashboard" className="text-sm font-medium">
+                    {t.dashboard}
+                  </Link>
+                  <UserButton />
+                </Show>
+              </div>
+            </header>
+            {children}
+          </I18nProvider>
         </body>
       </html>
     </ClerkProvider>

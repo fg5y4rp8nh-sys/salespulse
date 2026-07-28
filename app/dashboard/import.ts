@@ -21,14 +21,14 @@ type Field = (typeof FIELDS)[number];
 type Mapping = Partial<Record<Field, string>>; // поле -> имя колонки в файле
 
 const DICTIONARY: Record<Field, string[]> = {
-  customer: ["customer", "клиент", "company", "компания", "client", "заказчик"],
-  manager: ["manager", "менеджер", "owner", "ответственный", "продавец", "sales rep"],
-  region: ["region", "регион", "area", "область", "территория"],
-  source: ["source", "источник", "channel", "канал"],
-  amount: ["amount", "сумма", "revenue", "выручка", "value", "deal value", "стоимость"],
-  status: ["status", "статус", "state"],
-  stage: ["stage", "этап", "pipeline stage", "воронка", "фаза"],
-  date: ["date", "дата", "deal_date", "дата сделки", "created", "closed date"],
+  customer: ["customer", "клиент", "company", "компания", "client", "заказчик", "name", "account", "customer name", "client name", "kunde", "cliente"],
+  manager: ["manager", "менеджер", "owner", "ответственный", "продавец", "sales rep", "rep", "salesperson", "seller", "vendedor"],
+  region: ["region", "регион", "area", "область", "территория", "territory", "location", "country", "город", "city"],
+  source: ["source", "источник", "channel", "канал", "lead source", "utm_source"],
+  amount: ["amount", "сумма", "revenue", "выручка", "value", "deal value", "стоимость", "price", "total", "sum", "цена", "betrag", "importe", "montant"],
+  status: ["status", "статус", "state", "won/lost", "outcome", "result"],
+  stage: ["stage", "этап", "pipeline stage", "воронка", "фаза", "phase", "step"],
+  date: ["date", "дата", "deal_date", "дата сделки", "created", "closed date", "close date", "created at", "datum", "fecha"],
 };
 
 // Нормализует этап воронки. Если нет — вернём null (тогда выведем из статуса).
@@ -234,6 +234,7 @@ async function processOneFile(
   file: File,
   userId: string,
   seen: Set<string>,
+  ru: boolean,
 ): Promise<{ deals: NewDeal[]; skipped: number; duplicates: number; aiUsed: boolean }> {
   const rows = await parseFile(file);
   if (rows.length === 0) return { deals: [], skipped: 0, duplicates: 0, aiUsed: false };
@@ -252,7 +253,9 @@ async function processOneFile(
   }
   if (!map.customer || !map.amount) {
     throw new Error(
-      `Не удалось понять колонки файла «${file.name}». Нужны хотя бы клиент и сумма.`,
+      ru
+        ? `Не удалось понять колонки файла «${file.name}». Нужны хотя бы клиент и сумма.`
+        : `Couldn't understand the columns of "${file.name}". At least customer and amount are required.`,
     );
   }
 
@@ -301,11 +304,12 @@ async function processOneFile(
 }
 
 export async function importFile(formData: FormData): Promise<ImportResult> {
+  const ru = formData.get("locale") === "ru";
   const { userId } = await auth();
-  if (!userId) return { ok: false, error: "Не авторизован" };
+  if (!userId) return { ok: false, error: ru ? "Не авторизован" : "Not authorized" };
 
   const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) return { ok: false, error: "Файл не выбран." };
+  if (files.length === 0) return { ok: false, error: ru ? "Файл не выбран." : "No file selected." };
 
   // Подпись существующих сделок — чтобы не задваивать (и между файлами тоже).
   const existing = await db
@@ -328,21 +332,27 @@ export async function importFile(formData: FormData): Promise<ImportResult> {
 
   for (const file of files) {
     try {
-      const res = await processOneFile(file, userId, seen);
+      const res = await processOneFile(file, userId, seen, ru);
       toInsert.push(...res.deals);
       skipped += res.skipped;
       duplicates += res.duplicates;
       aiUsed = aiUsed || res.aiUsed;
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : "Не удалось прочитать файл." };
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : ru ? "Не удалось прочитать файл." : "Couldn't read the file.",
+      };
     }
   }
 
   if (toInsert.length === 0) {
-    const reason =
-      duplicates > 0
+    const reason = ru
+      ? duplicates > 0
         ? "Все строки уже есть в базе (дубли не добавляем)."
-        : "Не нашлось ни одной корректной строки (проверьте суммы и колонки).";
+        : "Не нашлось ни одной корректной строки (проверьте суммы и колонки)."
+      : duplicates > 0
+        ? "All rows already exist (duplicates are not added)."
+        : "No valid rows found (check amounts and columns).";
     return { ok: false, error: reason };
   }
 

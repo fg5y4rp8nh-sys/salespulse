@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { Analytics } from "@/lib/analytics";
 import { ReportDocument } from "./ReportDocument";
+import { useT } from "../I18nProvider";
 
 export function PdfExport({
   a,
@@ -14,6 +15,7 @@ export function PdfExport({
   const [busy, setBusy] = useState(false);
   const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const t = useT();
 
   async function run() {
     setBusy(true);
@@ -63,7 +65,7 @@ export function PdfExport({
         disabled={busy}
         className="rounded-md border border-black/15 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-black/[.04] disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/[.06]"
       >
-        {busy ? "Готовлю PDF…" : "Скачать отчёт"}
+        {busy ? t.exportBusy : t.exportPdf}
       </button>
 
       {mounted && (

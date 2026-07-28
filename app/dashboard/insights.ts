@@ -9,6 +9,7 @@ import { deals, insights } from "@/db/schema";
 export type InsightResult = { ok: true; text: string } | { ok: false; error: string };
 
 export type InsightFilters = {
+  locale?: "en" | "ru";
   period?: string;
   manager?: string;
   region?: string;
@@ -19,8 +20,9 @@ const MODEL = "gemini-flash-latest";
 
 // Анализирует сделки пользователя (с учётом фильтров) через Gemini и сохраняет результат.
 export async function getInsights(filters: InsightFilters = {}): Promise<InsightResult> {
+  const ru = filters.locale === "ru";
   const { userId } = await auth();
-  if (!userId) return { ok: false, error: "Не авторизован" };
+  if (!userId) return { ok: false, error: ru ? "Не авторизован" : "Not authorized" };
 
   const conds = [eq(deals.userId, userId)];
   if (filters.status) conds.push(eq(deals.status, filters.status));
@@ -31,7 +33,12 @@ export async function getInsights(filters: InsightFilters = {}): Promise<Insight
 
   const rows = await db.select().from(deals).where(and(...conds));
   if (rows.length === 0) {
-    return { ok: false, error: "Нет сделок для анализа — измените фильтры или добавьте данные." };
+    return {
+      ok: false,
+      error: ru
+        ? "Нет сделок для анализа — измените фильтры или добавьте данные."
+        : "No deals to analyze — change filters or add data.",
+    };
   }
 
   // Богатая сводка: с менеджером, регионом, датой и этапом.
@@ -46,21 +53,18 @@ export async function getInsights(filters: InsightFilters = {}): Promise<Insight
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: `Ты — аналитик продаж. Данные сделок (дата | клиент | менеджер | регион | сумма | этап | статус):
+    const prompt = ru
+      ? `Ты — аналитик продаж. Данные сделок (дата | клиент | менеджер | регион | сумма | этап | статус):\n\n${summary}\n\nДай 3–5 конкретных инсайтов на русском. Опирайся на менеджеров, регионы и динамику по датам: где просадка и ПОЧЕМУ (какой менеджер/регион), что улучшить. Формулируй как «проблема → причина → рекомендация». Кратко, по делу.`
+      : `You are a sales analyst. Deal data (date | customer | manager | region | amount | stage | status):\n\n${summary}\n\nGive 3–5 concrete insights in English. Rely on managers, regions and date trends: where the drop is and WHY (which manager/region), what to improve. Format as "problem → cause → recommendation". Short and to the point.`;
 
-${summary}
+    const response = await ai.models.generateContent({ model: MODEL, contents: prompt });
 
-Дай 3–5 конкретных инсайтов на русском. Обязательно опирайся на менеджеров, регионы и динамику по датам: где просадка и ПОЧЕМУ (какой менеджер/регион), что улучшить. Формулируй как «проблема → причина → рекомендация». Кратко, по делу.`,
-    });
-
-    const text = response.text ?? "Пустой ответ модели.";
+    const text = response.text ?? (ru ? "Пустой ответ модели." : "Empty model response.");
     // Сохраняем инсайт в историю.
     await db.insert(insights).values({ userId, content: text, model: MODEL });
     return { ok: true, text };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
-    return { ok: false, error: `Gemini недоступен: ${msg}` };
+    const msg = e instanceof Error ? e.message : ru ? "Неизвестная ошибка" : "Unknown error";
+    return { ok: false, error: `${ru ? "Gemini недоступен" : "Gemini unavailable"}: ${msg}` };
   }
 }

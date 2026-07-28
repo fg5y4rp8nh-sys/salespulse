@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { importFile, type ImportResult } from "./import";
+import { useT, useLocale } from "../I18nProvider";
 
 const ACCEPT =
   ".csv,.tsv,.txt,.xlsx,.xls,.ods,.json,.pdf,.png,.jpg,.jpeg,.webp,text/csv,application/json,application/pdf,image/*";
@@ -13,8 +14,11 @@ export function ImportPanel() {
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useT();
+  const locale = useLocale();
 
   function onSubmit(formData: FormData) {
+    formData.set("locale", locale);
     startTransition(async () => {
       const res = await importFile(formData);
       setResult(res);
@@ -27,7 +31,9 @@ export function ImportPanel() {
 
   function label(files: FileList | null): string | null {
     if (!files || files.length === 0) return null;
-    return files.length === 1 ? files[0].name : `Файлов выбрано: ${files.length}`;
+    return files.length === 1
+      ? files[0].name
+      : `${locale === "ru" ? "Файлов выбрано" : "Files selected"}: ${files.length}`;
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -42,11 +48,8 @@ export function ImportPanel() {
   return (
     <section className="flex flex-col gap-4 rounded-xl border border-black/10 p-4 dark:border-white/10">
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-lg font-semibold">Загрузка файла</h2>
-        <p className="text-xs text-zinc-500">
-          CSV, TSV, Excel, ODS, JSON, а также PDF и сканы/фото таблиц (распознаём через AI).
-          Можно выбрать несколько файлов сразу.
-        </p>
+        <h2 className="text-lg font-semibold">{t.impTitle}</h2>
+        <p className="text-xs text-zinc-500">{t.impFormats}</p>
       </div>
 
       <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
@@ -94,10 +97,8 @@ export function ImportPanel() {
             <span className="text-sm font-medium">{fileName}</span>
           ) : (
             <span className="text-sm text-zinc-500">
-              Перетащите файл сюда или{" "}
-              <span className="font-medium text-foreground underline">
-                выберите на компьютере
-              </span>
+              {t.impDrop}{" "}
+              <span className="font-medium text-foreground underline">{t.impChoose}</span>
             </span>
           )}
         </label>
@@ -107,16 +108,16 @@ export function ImportPanel() {
           disabled={isPending || !fileName}
           className="self-start rounded-md bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity disabled:opacity-40"
         >
-          {isPending ? "Загружаю…" : "Импортировать"}
+          {isPending ? t.impImporting : t.impImport}
         </button>
       </form>
 
       {result?.ok && (
         <p className="text-sm text-green-600">
-          Импортировано: {result.imported}
-          {result.duplicates > 0 && ` · дублей пропущено: ${result.duplicates}`}
-          {result.skipped > 0 && ` · некорректных строк: ${result.skipped}`}
-          {result.aiUsed && " · колонки распознаны через AI 🤖"}
+          {t.impImported}: {result.imported}
+          {result.duplicates > 0 && ` · ${t.impDuplicates}: ${result.duplicates}`}
+          {result.skipped > 0 && ` · ${t.impSkipped}: ${result.skipped}`}
+          {result.aiUsed && ` · ${t.impAi}`}
         </p>
       )}
       {result && !result.ok && (

@@ -1,8 +1,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { deals, insights, type Deal } from "@/db/schema";
 import { analyze, revenueDelta } from "@/lib/analytics";
+import { normalizeLocale, getDict } from "@/lib/i18n";
 import { addDeal } from "./actions";
 import { InsightsPanel } from "./InsightsPanel";
 import { ImportPanel } from "./ImportPanel";
@@ -11,12 +13,6 @@ import { FilterBar } from "./FilterBar";
 import { PdfExport } from "./PdfExport";
 import { Report } from "./report";
 import { DealsTable, type TableDeal } from "./DealsTable";
-
-const PERIOD_LABELS: Record<string, string> = {
-  "7": "период: 7 дней",
-  "30": "период: 30 дней",
-  "90": "период: 90 дней",
-};
 
 const toTableDeal = (d: Deal): TableDeal => ({
   id: d.id,
@@ -36,6 +32,8 @@ export default async function DashboardPage({
 }) {
   const { userId } = await auth();
   const user = await currentUser();
+  const locale = normalizeLocale((await cookies()).get("locale")?.value);
+  const t = getDict(locale);
 
   let allRows: Deal[];
   let dbError = false;
@@ -72,10 +70,8 @@ export default async function DashboardPage({
   if (dbError) {
     return (
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 px-4 py-10 sm:px-6">
-        <h1 className="text-2xl font-semibold">Дашборд</h1>
-        <p className="text-red-600">
-          Не удалось подключиться к базе данных. Попробуйте обновить страницу позже.
-        </p>
+        <h1 className="text-2xl font-semibold">{t.dashboard}</h1>
+        <p className="text-red-600">{t.dbError}</p>
       </main>
     );
   }
@@ -100,7 +96,7 @@ export default async function DashboardPage({
     }
   }
 
-  const a = analyze(rows);
+  const a = analyze(rows, locale);
 
   // Динамика выручки к предыдущему периоду (только когда выбран период).
   let deltaPct: number | null = null;
@@ -109,7 +105,7 @@ export default async function DashboardPage({
     const prevRows = allRows.filter(
       (d) => d.dealDate >= prevSince && d.dealDate < since && matchesDims(d),
     );
-    const prevRevenue = analyze(prevRows).wonRevenue;
+    const prevRevenue = analyze(prevRows, locale).wonRevenue;
     deltaPct = revenueDelta(a.wonRevenue, prevRevenue);
   }
 
@@ -117,7 +113,7 @@ export default async function DashboardPage({
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">
-          Дашборд ·{" "}
+          {t.dashboard} ·{" "}
           <span className="text-zinc-500">
             {user?.firstName ?? user?.emailAddresses[0]?.emailAddress}
           </span>
@@ -127,11 +123,13 @@ export default async function DashboardPage({
             <PdfExport
               a={a}
               meta={{
-                date: new Date().toLocaleDateString("ru-RU"),
+                date: new Date().toLocaleDateString(locale === "ru" ? "ru-RU" : "en-US"),
                 scope: [
-                  PERIOD_LABELS[fPeriod ?? ""] ?? "весь период",
-                  fManager && `менеджер: ${fManager}`,
-                  fRegion && `регион: ${fRegion}`,
+                  fPeriod && fPeriod !== "all"
+                    ? `${locale === "ru" ? "период" : "period"}: ${fPeriod} ${locale === "ru" ? "дн." : "days"}`
+                    : locale === "ru" ? "весь период" : "all time",
+                  fManager && `${locale === "ru" ? "менеджер" : "manager"}: ${fManager}`,
+                  fRegion && `${locale === "ru" ? "регион" : "region"}: ${fRegion}`,
                 ]
                   .filter(Boolean)
                   .join(" · "),
@@ -144,7 +142,7 @@ export default async function DashboardPage({
 
       {allRows.length > 0 && <FilterBar managers={managers} regions={regions} />}
 
-      <Report a={a} deltaPct={deltaPct} />
+      <Report a={a} t={t} deltaPct={deltaPct} />
 
       <ImportPanel />
 
@@ -157,45 +155,43 @@ export default async function DashboardPage({
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <label className="flex flex-col gap-1 text-sm">
-            Клиент
+            {t.addCustomer}
             <input name="customer" required className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Менеджер
+            {t.addManager}
             <input name="manager" className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Регион
+            {t.addRegion}
             <input name="region" className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Дата
+            {t.addDate}
             <input name="dealDate" type="date" className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Сумма
+            {t.addAmount}
             <input name="amount" type="number" min="0" step="0.01" required className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Статус
+            {t.addStatus}
             <select name="status" className="w-full rounded-md border border-black/15 px-3 py-2 dark:border-white/15 dark:bg-transparent">
-              <option value="open">В работе</option>
-              <option value="won">Выиграна</option>
-              <option value="lost">Проиграна</option>
+              <option value="open">{t.stOpen}</option>
+              <option value="won">{t.stWon}</option>
+              <option value="lost">{t.stLost}</option>
             </select>
           </label>
         </div>
         <button type="submit" className="mt-3 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background">
-          Добавить
+          {t.addButton}
         </button>
       </form>
 
       {/* Список сделок */}
       {rows.length === 0 ? (
         <p className="text-zinc-500">
-          {allRows.length === 0
-            ? "Сделок пока нет — добавьте вручную выше или загрузите файл."
-            : "Под выбранные фильтры сделок не нашлось."}
+          {allRows.length === 0 ? t.noDeals : t.noDealsFilters}
         </p>
       ) : (
         <DealsTable rows={rows.map(toTableDeal)} deletable />

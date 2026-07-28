@@ -1,4 +1,5 @@
 import type { Analytics } from "@/lib/analytics";
+import type { Dictionary } from "@/lib/i18n";
 import { Charts } from "./Charts";
 import { Funnel } from "./Funnel";
 import { money } from "./reportClient";
@@ -35,18 +36,20 @@ function Metric({
 // Блок отчёта: метрики + графики + воронка. Идёт внутрь PDF (id="report").
 export function Report({
   a,
+  t,
   deltaPct,
 }: {
   a: Analytics;
+  t: Dictionary;
   deltaPct?: number | null;
 }) {
   return (
     <div id="report" className="flex flex-col gap-8">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Metric label="Выручка" value={money(a.wonRevenue, a.mainCurrency)} delta={deltaPct} />
-        <Metric label="Всего сделок" value={String(a.dealCount)} />
-        <Metric label="Средний чек" value={money(a.avgCheck, a.mainCurrency)} />
-        <Metric label="Конверсия" value={`${a.conversion}%`} />
+        <Metric label={t.mRevenue} value={money(a.wonRevenue, a.mainCurrency)} delta={deltaPct} />
+        <Metric label={t.mDeals} value={String(a.dealCount)} />
+        <Metric label={t.mAvg} value={money(a.avgCheck, a.mainCurrency)} />
+        <Metric label={t.mConversion} value={`${a.conversion}%`} />
       </div>
 
       {a.won.length > 0 && (
@@ -57,7 +60,7 @@ export function Report({
         />
       )}
 
-      {a.dealCount > 0 && <Funnel stageCounts={a.stageCounts} />}
+      {a.dealCount > 0 && <Funnel stageCounts={a.stageCounts} t={t} />}
     </div>
   );
 }

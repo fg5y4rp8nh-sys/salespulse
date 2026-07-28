@@ -1,11 +1,16 @@
 import type { Deal } from "@/db/schema";
+import type { Locale } from "@/lib/i18n";
 
-const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+const MONTHS: Record<Locale, string[]> = {
+  ru: ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"],
+  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+};
 
 export type Analytics = ReturnType<typeof analyze>;
 
 // Считает все производные данные дашборда из массива сделок.
-export function analyze(rows: Deal[]) {
+export function analyze(rows: Deal[], locale: Locale = "en") {
+  const months = MONTHS[locale] ?? MONTHS.en;
   const won = rows.filter((d) => d.status === "won");
   const wonRevenue = won.reduce((s, d) => s + Number(d.amount), 0);
   const totalAmount = rows.reduce((s, d) => s + Number(d.amount), 0);
@@ -26,7 +31,7 @@ export function analyze(rows: Deal[]) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, revenue]) => {
       const [y, m] = key.split("-");
-      return { month: `${MONTHS[Number(m) - 1]} ${y.slice(2)}`, revenue };
+      return { month: `${months[Number(m) - 1]} ${y.slice(2)}`, revenue };
     });
 
   // Топ-5 менеджеров.

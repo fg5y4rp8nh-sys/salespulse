@@ -2,7 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { deleteDeal, updateDeal } from "./actions";
-import { money, STATUS } from "./reportClient";
+import { money, STATUS_CLS } from "./reportClient";
+import { useT } from "../I18nProvider";
 
 export type TableDeal = {
   id: number;
@@ -17,14 +18,6 @@ export type TableDeal = {
 
 type SortKey = "dealDate" | "customer" | "manager" | "region" | "amount";
 
-const COLS: { key: SortKey; label: string }[] = [
-  { key: "dealDate", label: "Дата" },
-  { key: "customer", label: "Клиент" },
-  { key: "manager", label: "Менеджер" },
-  { key: "region", label: "Регион" },
-  { key: "amount", label: "Сумма" },
-];
-
 const MAX_ROWS = 100;
 
 export function DealsTable({
@@ -34,12 +27,23 @@ export function DealsTable({
   rows: TableDeal[];
   deletable?: boolean;
 }) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("dealDate");
   const [asc, setAsc] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [editId, setEditId] = useState<number | null>(null);
   const [draft, setDraft] = useState<TableDeal | null>(null);
+
+  const COLS: { key: SortKey; label: string }[] = [
+    { key: "dealDate", label: t.tblDate },
+    { key: "customer", label: t.tblCustomer },
+    { key: "manager", label: t.tblManager },
+    { key: "region", label: t.tblRegion },
+    { key: "amount", label: t.tblAmount },
+  ];
+  const statusLabel = (s: string) =>
+    s === "won" ? t.stWon : s === "lost" ? t.stLost : t.stOpen;
 
   function startEdit(d: TableDeal) {
     setEditId(d.id);
@@ -93,7 +97,7 @@ export function DealsTable({
   return (
     <div className="flex flex-col gap-3">
       <input
-        placeholder="Поиск по клиенту, менеджеру, региону…"
+        placeholder={t.tblSearch}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="w-full max-w-sm rounded-md border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/15"
@@ -115,13 +119,13 @@ export function DealsTable({
                   </button>
                 </th>
               ))}
-              <th className="py-2 pr-4">Статус</th>
+              <th className="py-2 pr-4">{t.tblStatus}</th>
               {deletable && <th className="py-2" />}
             </tr>
           </thead>
           <tbody>
             {visible.map((d) => {
-              const st = STATUS[d.status] ?? STATUS.open;
+              const stCls = STATUS_CLS[d.status] ?? STATUS_CLS.open;
               const editing = deletable && editId === d.id && draft;
 
               if (editing) {
@@ -146,14 +150,14 @@ export function DealsTable({
                     </td>
                     <td className="py-1 pr-2">
                       <select className={inp} value={draft!.status} onChange={(e) => setDraft({ ...draft!, status: e.target.value })}>
-                        <option value="open">В работе</option>
-                        <option value="won">Выиграна</option>
-                        <option value="lost">Проиграна</option>
+                        <option value="open">{t.stOpen}</option>
+                        <option value="won">{t.stWon}</option>
+                        <option value="lost">{t.stLost}</option>
                       </select>
                     </td>
                     <td className="py-1 whitespace-nowrap text-right">
-                      <button type="button" disabled={isPending} onClick={saveEdit} className="mr-2 text-green-600 disabled:opacity-50" title="Сохранить">✓</button>
-                      <button type="button" onClick={() => { setEditId(null); setDraft(null); }} className="text-zinc-400" title="Отмена">✕</button>
+                      <button type="button" disabled={isPending} onClick={saveEdit} className="mr-2 text-green-600 disabled:opacity-50" title={t.tblSave}>✓</button>
+                      <button type="button" onClick={() => { setEditId(null); setDraft(null); }} className="text-zinc-400" title={t.tblCancel}>✕</button>
                     </td>
                   </tr>
                 );
@@ -171,8 +175,8 @@ export function DealsTable({
                     {money(d.amount, d.currency)}
                   </td>
                   <td className="py-2 pr-4">
-                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${st.cls}`}>
-                      {st.label}
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${stCls}`}>
+                      {statusLabel(d.status)}
                     </span>
                   </td>
                   {deletable && (
@@ -181,7 +185,7 @@ export function DealsTable({
                         type="button"
                         onClick={() => startEdit(d)}
                         className="mr-3 text-zinc-400 transition-colors hover:text-foreground"
-                        aria-label="Редактировать" title="Редактировать"
+                        aria-label={t.tblEdit} title={t.tblEdit}
                       >
                         ✎
                       </button>
@@ -190,7 +194,7 @@ export function DealsTable({
                         disabled={isPending}
                         onClick={() => startTransition(() => deleteDeal(d.id))}
                         className="text-zinc-400 transition-colors hover:text-red-600 disabled:opacity-50"
-                        aria-label="Удалить сделку" title="Удалить"
+                        aria-label={t.tblDelete} title={t.tblDelete}
                       >
                         ✕
                       </button>
@@ -204,12 +208,10 @@ export function DealsTable({
       </div>
 
       {filtered.length > MAX_ROWS && (
-        <p className="text-xs text-zinc-500">
-          Показаны первые {MAX_ROWS} из {filtered.length} сделок.
-        </p>
+        <p className="text-xs text-zinc-500">{t.tblShowing(MAX_ROWS, filtered.length)}</p>
       )}
       {filtered.length === 0 && (
-        <p className="text-sm text-zinc-500">Ничего не найдено.</p>
+        <p className="text-sm text-zinc-500">{t.tblNothing}</p>
       )}
     </div>
   );
