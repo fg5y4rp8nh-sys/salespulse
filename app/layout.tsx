@@ -45,27 +45,29 @@ export default async function RootLayout({
       >
         <body className="min-h-full flex flex-col">
           <I18nProvider locale={locale}>
-            <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-black/10 px-4 py-4 sm:px-6 dark:border-white/10">
-              <Link
-                href="/"
-                className="wordmark-outline text-2xl font-extrabold tracking-[-0.01em]"
-              >
-                Sales<span className="accent">Pulse</span>
+            <header className="flex items-center justify-between gap-3 border-b border-black/10 px-4 py-4 sm:gap-4 sm:px-6 dark:border-white/10">
+              <Link href="/" className="shrink-0 text-lg font-semibold sm:text-xl">
+                SalesPulse
               </Link>
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex shrink-0 items-center gap-2 sm:gap-4">
                 <LangToggle />
                 <Show when="signed-out">
                   <SignInButton mode="modal">
-                    <button className="text-sm font-medium">{t.signIn}</button>
+                    <button className="whitespace-nowrap text-sm font-medium">
+                      {t.signIn}
+                    </button>
                   </SignInButton>
                   <SignUpButton mode="modal">
-                    <button className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background">
+                    <button className="whitespace-nowrap rounded-full bg-foreground px-3 py-1.5 text-sm font-medium text-background sm:px-4 sm:py-2">
                       {t.signUp}
                     </button>
                   </SignUpButton>
                 </Show>
                 <Show when="signed-in">
-                  <Link href="/dashboard" className="text-sm font-medium">
+                  <Link
+                    href="/dashboard"
+                    className="whitespace-nowrap text-sm font-medium"
+                  >
                     {t.dashboard}
                   </Link>
                   <UserButton />
