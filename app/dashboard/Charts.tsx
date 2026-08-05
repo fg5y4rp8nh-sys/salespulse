@@ -67,16 +67,30 @@ export function Charts({
   revenueByMonth,
   topManagers,
   byRegion,
+  currency,
 }: {
   revenueByMonth: MonthPoint[];
   topManagers: ManagerPoint[];
   byRegion: RegionPoint[];
+  currency?: string;
 }) {
   const t = useT();
   const locale = useLocale();
   const shortVal = (v: unknown) => short(Number(v), locale);
+  // На узких экранах ось уже (экономим ширину), на ПК шире — чтобы подписи не обрезались.
+  const [axisW, setAxisW] = useState(56);
+  useEffect(() => {
+    const apply = () => setAxisW(window.innerWidth < 640 ? 46 : 68);
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, []);
   const full = (v: unknown) =>
-    new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US").format(Number(v)) + " ₽";
+    new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", {
+      style: "currency",
+      currency: currency ?? (locale === "ru" ? "RUB" : "USD"),
+      maximumFractionDigits: 0,
+    }).format(Number(v));
 
   // Рисуем графики только после монтирования — иначе Recharts может измерить
   // ширину как 0 и оставить область пустой (особенно на статичных страницах).
@@ -101,7 +115,7 @@ export function Charts({
               </defs>
               <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="month" tick={axisTick} tickLine={false} axisLine={false} minTickGap={14} padding={{ left: 6, right: 6 }} />
-              <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={48} />
+              <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={axisW} />
               <Tooltip contentStyle={tooltipStyle} formatter={full} />
               <Area
                 type="monotone"
@@ -124,7 +138,7 @@ export function Charts({
           <BarChart data={topManagers} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
             <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="manager" tick={{ fontSize: 10, fill: "currentColor" }} tickLine={false} axisLine={false} interval={0} />
-            <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={48} />
+            <YAxis tickFormatter={shortVal} tick={axisTick} tickLine={false} axisLine={false} width={axisW} />
             <Tooltip contentStyle={tooltipStyle} formatter={full} cursor={false} />
             <Bar dataKey="revenue" name={t.seriesRevenue} fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={64} activeBar={false} />
           </BarChart>

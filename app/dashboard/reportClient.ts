@@ -1,7 +1,7 @@
 // Чистые помощники форматирования — безопасны и на сервере, и на клиенте.
 
 export const money = (n: number, currency = "RUB") =>
-  new Intl.NumberFormat("ru-RU", {
+  new Intl.NumberFormat(currency === "RUB" ? "ru-RU" : "en-US", {
     style: "currency",
     currency,
     maximumFractionDigits: 0,

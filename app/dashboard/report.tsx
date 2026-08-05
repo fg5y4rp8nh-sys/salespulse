@@ -57,6 +57,7 @@ export function Report({
           revenueByMonth={a.revenueByMonth}
           topManagers={a.topManagers}
           byRegion={a.byRegion}
+          currency={a.mainCurrency}
         />
       )}
 

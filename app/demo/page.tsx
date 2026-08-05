@@ -17,17 +17,34 @@ type Seed = {
   month: number; // 1..6 (янв..июн 2026)
 };
 
-const MANAGERS = ["Иванов", "Петрова", "Смирнов", "Козлова"];
-const REGIONS = ["Москва", "Санкт-Петербург", "Юг", "Урал"];
 const STAGES = ["lead", "qualified", "proposal", "negotiation", "closed"];
-const CUSTOMERS = [
-  "ООО Ромашка", "ЗАО Вектор", "ИП Сидоров", "ООО Технопарк", "АО Логистик",
-  "ООО Медтех", "ЗАО Строймир", "ООО Агротрейд", "АО Финанс", "ООО Ритейл",
-  "ЗАО Энергия", "ООО Гефест", "АО Транзит", "ООО Стандарт", "АО Прогресс",
-];
+
+// Вымышленные данные под язык интерфейса.
+const DEMO_DATA = {
+  ru: {
+    managers: ["Иванов", "Петрова", "Смирнов", "Козлова"],
+    regions: ["Москва", "Санкт-Петербург", "Юг", "Урал"],
+    customers: [
+      "ООО Ромашка", "ЗАО Вектор", "ИП Сидоров", "ООО Технопарк", "АО Логистик",
+      "ООО Медтех", "ЗАО Строймир", "ООО Агротрейд", "АО Финанс", "ООО Ритейл",
+      "ЗАО Энергия", "ООО Гефест", "АО Транзит", "ООО Стандарт", "АО Прогресс",
+    ],
+  },
+  en: {
+    managers: ["J. Miller", "S. Carter", "D. Wilson", "A. Brooks"],
+    regions: ["North", "South", "East", "West"],
+    customers: [
+      "Acme Corp", "Vertex Ltd", "Northwind Inc", "TechPark LLC", "Logistix Co",
+      "MedTech Group", "BuildRight Ltd", "AgroTrade Inc", "FinCore AG", "RetailOne",
+      "Energex Ltd", "Hephaestus Co", "Transit Global", "Standard Systems", "Progress Labs",
+    ],
+  },
+} as const;
 
 // Детерминированно генерируем ~40 сделок вымышленной компании.
-function demoSeeds(): Seed[] {
+function demoSeeds(locale: "en" | "ru"): Seed[] {
+  const { managers: MANAGERS, regions: REGIONS, customers: CUSTOMERS } =
+    DEMO_DATA[locale] ?? DEMO_DATA.en;
   const seeds: Seed[] = [];
   let n = 7;
   for (let i = 0; i < 42; i++) {
@@ -41,7 +58,7 @@ function demoSeeds(): Seed[] {
       customer: CUSTOMERS[r(CUSTOMERS.length)],
       manager: MANAGERS[r(MANAGERS.length)],
       region: REGIONS[r(REGIONS.length)],
-      amount: (r(20) + 3) * 25000,
+      amount: (r(20) + 3) * (locale === "ru" ? 25000 : 500),
       status,
       stage,
       month: (i % 6) + 1,
@@ -50,7 +67,7 @@ function demoSeeds(): Seed[] {
   return seeds;
 }
 
-function toDeal(s: Seed, id: number): Deal {
+function toDeal(s: Seed, id: number, currency: string): Deal {
   const dealDate = new Date(2026, s.month - 1, ((id * 7) % 27) + 1);
   const isClosed = s.status === "won" || s.status === "lost";
   return {
@@ -60,7 +77,7 @@ function toDeal(s: Seed, id: number): Deal {
     manager: s.manager,
     region: s.region,
     amount: String(s.amount),
-    currency: "RUB",
+    currency,
     status: s.status,
     stage: s.stage,
     stageChangedAt: dealDate,
@@ -90,7 +107,8 @@ const toTableDeal = (d: Deal): TableDeal => ({
 export default async function DemoPage() {
   const locale = normalizeLocale((await cookies()).get("locale")?.value);
   const t = getDict(locale);
-  const rows = demoSeeds().map(toDeal);
+  const currency = locale === "ru" ? "RUB" : "USD";
+  const rows = demoSeeds(locale).map((s, i) => toDeal(s, i, currency));
   const a = analyze(rows, locale);
 
   return (
