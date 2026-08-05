@@ -74,7 +74,9 @@ export default async function RootLayout({
                 </Show>
               </div>
             </header>
-            {children}
+            <div key={locale} className="lang-fade flex flex-1 flex-col">
+              {children}
+            </div>
           </I18nProvider>
         </body>
       </html>
